@@ -437,7 +437,6 @@ class GameApp {
 
     this.particles = [];
     this.shockwaves = [];
-    this.flashes = [];
 
     this.time = 0;
     this.initUI();
@@ -514,7 +513,6 @@ class GameApp {
     this.hoverEdge = null;
     this.particles = [];
     this.shockwaves = [];
-    this.flashes = [];
 
     document.getElementById('levelTitle').textContent = `Level ${config.id}: ${config.title}`;
     document.getElementById('levelDesc').textContent = config.description;
@@ -610,50 +608,34 @@ class GameApp {
     const cx = pad + c * cs + cs / 2;
     const cy = pad + r * cs + cs / 2;
 
-    // 1. Primary Bio-Green Shockwave Ring
-    this.shockwaves.push({
-      cx, cy,
-      radius: 4,
-      maxRadius: cs * 1.8,
-      lineWidth: 6,
-      color: '#39ff14',
-      alpha: 1.0,
-      expansion: 5.5
-    });
+    // Lightweight Shockwave Ring (capped max 6 active)
+    if (this.shockwaves.length < 6) {
+      this.shockwaves.push({
+        cx, cy,
+        radius: 4,
+        maxRadius: cs * 0.9,
+        color: '#39ff14',
+        alpha: 0.9
+      });
+    }
 
-    // 2. Secondary Amber Gold Shockwave Ring
-    this.shockwaves.push({
-      cx, cy,
-      radius: 2,
-      maxRadius: cs * 1.4,
-      lineWidth: 4,
-      color: '#ffea00',
-      alpha: 1.0,
-      expansion: 3.5
-    });
-
-    // 3. Cell Floor Burst Flash
-    this.flashes.push({
-      r, c,
-      alpha: 1.0
-    });
-
-    // 4. 50 High-Energy Particles
-    const colors = ['#39ff14', '#00ff88', '#00e5ff', '#ffffff', '#ffea00', '#ff0055'];
-    const particleCount = 50;
+    // Lightweight Burst Particles (capped max 30 active)
+    const colors = ['#39ff14', '#00ff88', '#00e5ff', '#ffffff'];
+    const particleCount = 8;
 
     for (let i = 0; i < particleCount; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 3.5 + Math.random() * 8.5;
+      if (this.particles.length >= 30) break;
+      const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.4;
+      const speed = 2.0 + Math.random() * 4.0;
       this.particles.push({
         x: cx,
         y: cy,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        radius: 5 + Math.random() * 7,
-        color: colors[Math.floor(Math.random() * colors.length)],
+        radius: 2.5 + Math.random() * 3.5,
+        color: colors[i % colors.length],
         life: 1.0,
-        decay: 0.012 + Math.random() * 0.012
+        decay: 0.05 + Math.random() * 0.03
       });
     }
   }
@@ -851,13 +833,6 @@ class GameApp {
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, cs, cs);
 
-        // Check for cell flash explosion overlay
-        const flash = this.flashes.find(f => f.r === r && f.c === c);
-        if (flash && flash.alpha > 0) {
-          this.ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, flash.alpha * 0.85)})`;
-          this.ctx.fillRect(x, y, cs, cs);
-        }
-
         // Render Biomass
         if (isBiomass) {
           try {
@@ -972,7 +947,7 @@ class GameApp {
       this.ctx.restore();
     }
 
-    // Render Blast Shockwaves & Particles
+    // Render Blast Shockwaves & Particles (Ultra-Fast & Lightweight)
     if (this.shockwaves.length > 0 || this.particles.length > 0) {
       this.ctx.save();
       this.ctx.globalCompositeOperation = 'lighter';
@@ -981,20 +956,16 @@ class GameApp {
       this.shockwaves.forEach(sw => {
         this.ctx.strokeStyle = sw.color;
         this.ctx.globalAlpha = Math.max(0, sw.alpha);
-        this.ctx.lineWidth = sw.lineWidth || 5;
-        this.ctx.shadowColor = sw.color;
-        this.ctx.shadowBlur = 20;
+        this.ctx.lineWidth = 3;
         this.ctx.beginPath();
         this.ctx.arc(sw.cx, sw.cy, sw.radius, 0, Math.PI * 2);
         this.ctx.stroke();
       });
 
-      // Draw Blast Particles
+      // Draw Particles
       this.particles.forEach(p => {
         this.ctx.fillStyle = p.color;
         this.ctx.globalAlpha = Math.max(0, p.life);
-        this.ctx.shadowColor = p.color;
-        this.ctx.shadowBlur = 15;
         this.ctx.beginPath();
         this.ctx.arc(p.x, p.y, Math.max(1, p.radius), 0, Math.PI * 2);
         this.ctx.fill();
