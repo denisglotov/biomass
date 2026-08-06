@@ -435,6 +435,10 @@ class GameApp {
     this.hoverEdge = null; // { type: 'h'|'v', r, c }
     this.isAnimating = false;
 
+    this.particles = [];
+    this.shockwaves = [];
+    this.flashes = [];
+
     this.time = 0;
     this.initUI();
     this.resizeCanvas();
@@ -508,6 +512,9 @@ class GameApp {
     this.grid.loadLevel(config);
     this.isAnimating = false;
     this.hoverEdge = null;
+    this.particles = [];
+    this.shockwaves = [];
+    this.flashes = [];
 
     document.getElementById('levelTitle').textContent = `Level ${config.id}: ${config.title}`;
     document.getElementById('levelDesc').textContent = config.description;
@@ -597,6 +604,60 @@ class GameApp {
     }
   }
 
+  spawnBlastEffect(r, c) {
+    const cs = this.cellSize;
+    const pad = this.padding;
+    const cx = pad + c * cs + cs / 2;
+    const cy = pad + r * cs + cs / 2;
+
+    // 1. Primary Bio-Green Shockwave Ring
+    this.shockwaves.push({
+      cx, cy,
+      radius: 4,
+      maxRadius: cs * 1.8,
+      lineWidth: 6,
+      color: '#39ff14',
+      alpha: 1.0,
+      expansion: 5.5
+    });
+
+    // 2. Secondary Amber Gold Shockwave Ring
+    this.shockwaves.push({
+      cx, cy,
+      radius: 2,
+      maxRadius: cs * 1.4,
+      lineWidth: 4,
+      color: '#ffea00',
+      alpha: 1.0,
+      expansion: 3.5
+    });
+
+    // 3. Cell Floor Burst Flash
+    this.flashes.push({
+      r, c,
+      alpha: 1.0
+    });
+
+    // 4. 50 High-Energy Particles
+    const colors = ['#39ff14', '#00ff88', '#00e5ff', '#ffffff', '#ffea00', '#ff0055'];
+    const particleCount = 50;
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 3.5 + Math.random() * 8.5;
+      this.particles.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: 5 + Math.random() * 7,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1.0,
+        decay: 0.012 + Math.random() * 0.012
+      });
+    }
+  }
+
   async triggerEndTurn() {
     if (this.isAnimating) return;
     this.isAnimating = true;
@@ -638,13 +699,14 @@ class GameApp {
       }
     }
 
-    // Execute Isolation Die-off
+    // Execute Isolation Die-off with Visual Blast Effects
     const diedCells = this.grid.evaluateIsolation();
     if (diedCells.length > 0) {
+      diedCells.forEach(cell => this.spawnBlastEffect(cell.r, cell.c));
       this.sound.playDieOff();
       this.updateStats();
       if (this.animSpeed < 5) {
-        await new Promise(res => setTimeout(res, 500 / this.animSpeed));
+        await new Promise(res => setTimeout(res, 550 / this.animSpeed));
       }
     }
 
@@ -731,6 +793,31 @@ class GameApp {
 
   loop() {
     this.time += 0.05;
+
+    // Update Expanding Shockwaves
+    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+      const sw = this.shockwaves[i];
+      sw.radius += 3.2;
+      sw.alpha -= 0.04;
+      if (sw.alpha <= 0 || sw.radius >= sw.maxRadius) {
+        this.shockwaves.splice(i, 1);
+      }
+    }
+
+    // Update Radial Blast Particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.95;
+      p.vy *= 0.95;
+      p.life -= p.decay;
+      p.radius *= 0.95;
+      if (p.life <= 0 || p.radius <= 0.4) {
+        this.particles.splice(i, 1);
+      }
+    }
+
     this.render();
     requestAnimationFrame(this.loop.bind(this));
   }
@@ -763,6 +850,13 @@ class GameApp {
         this.ctx.strokeStyle = isBiomass ? 'rgba(57, 255, 20, 0.6)' : 'rgba(0, 229, 255, 0.35)';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(x, y, cs, cs);
+
+        // Check for cell flash explosion overlay
+        const flash = this.flashes.find(f => f.r === r && f.c === c);
+        if (flash && flash.alpha > 0) {
+          this.ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, flash.alpha * 0.85)})`;
+          this.ctx.fillRect(x, y, cs, cs);
+        }
 
         // Render Biomass
         if (isBiomass) {
@@ -875,6 +969,37 @@ class GameApp {
         this.ctx.lineTo(x, y2);
         this.ctx.stroke();
       }
+      this.ctx.restore();
+    }
+
+    // Render Blast Shockwaves & Particles
+    if (this.shockwaves.length > 0 || this.particles.length > 0) {
+      this.ctx.save();
+      this.ctx.globalCompositeOperation = 'lighter';
+
+      // Draw Shockwaves
+      this.shockwaves.forEach(sw => {
+        this.ctx.strokeStyle = sw.color;
+        this.ctx.globalAlpha = Math.max(0, sw.alpha);
+        this.ctx.lineWidth = sw.lineWidth || 5;
+        this.ctx.shadowColor = sw.color;
+        this.ctx.shadowBlur = 20;
+        this.ctx.beginPath();
+        this.ctx.arc(sw.cx, sw.cy, sw.radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+      });
+
+      // Draw Blast Particles
+      this.particles.forEach(p => {
+        this.ctx.fillStyle = p.color;
+        this.ctx.globalAlpha = Math.max(0, p.life);
+        this.ctx.shadowColor = p.color;
+        this.ctx.shadowBlur = 15;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, Math.max(1, p.radius), 0, Math.PI * 2);
+        this.ctx.fill();
+      });
+
       this.ctx.restore();
     }
   }
