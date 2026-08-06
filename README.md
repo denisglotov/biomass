@@ -41,6 +41,20 @@ npm start
 Or open `index.html` directly in any web browser.
 
 
+### 3. Android Application Build (100% CLI)
+
+Build the native Kotlin + Compose Android app via terminal:
+```bash
+# 1. Sync assets & compile APK via Gradle CLI
+npm run build:android
+
+# 2. Install APK directly to connected Android device / emulator via adb CLI
+npm run install:android
+```
+- **Source Code**:
+- **Stack**: Kotlin + Jetpack Compose + Manual Dependency Injection ([`AppContainer.kt`](android/app/src/main/java/com/biomass/game/di/AppContainer.kt)).
+
+
 ## 🔍 Code Quality & Linter
 
 Run automated linting:
@@ -48,6 +62,3 @@ Run automated linting:
 npm run lint
 ```
 - **JavaScript**: Linted using ESLint ([`.eslintrc.json`](.eslintrc.json)).
-
-### Continuous Integration (GitHub Actions)
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions automatically installs Node.js dependencies and executes `npm run lint`.

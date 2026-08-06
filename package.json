@@ -6,6 +6,8 @@
   "scripts": {
     "start": "npx serve .",
     "lint": "eslint ."
+    "build:android": "./scripts/build-android.sh",
+    "install:android": "node scripts/install-android.js"
   },
   "devDependencies": {
     "eslint": "^8.57.0"
