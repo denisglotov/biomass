@@ -1,0 +1,37 @@
+{
+  "runtime": {
+    "version": "LuaJIT",
+    "pathStrict": false
+  },
+  "diagnostics": {
+    "globals": [
+      "msg",
+      "hash",
+      "sound",
+      "go",
+      "factory",
+      "collectionfactory",
+      "resource",
+      "sys",
+      "vmath",
+      "gui",
+      "render",
+      "tilemap",
+      "particlefx",
+      "spine",
+      "model",
+      "physics",
+      "zlib",
+      "init",
+      "final",
+      "update",
+      "fixed_update",
+      "on_message",
+      "on_input",
+      "on_reload"
+    ],
+    "disable": [
+      "lowercase-global"
+    ]
+  }
+}

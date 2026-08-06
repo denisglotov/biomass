@@ -1,0 +1,21 @@
+[project]
+title = Biomass
+version = 1.0.0
+write_application_title = 1
+
+[display]
+width = 1024
+height = 768
+high_dpi = 1
+fullscreen = 0
+update_frequency = 60
+
+[render]
+clear_color = 0.05, 0.06, 0.10, 1.0
+
+[input]
+game_binding = /main/game.input_binding
+use_gamepad_template = 1
+
+[script]
+shared_state = 1

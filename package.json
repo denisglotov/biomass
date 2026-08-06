@@ -1,0 +1,23 @@
+{
+  "name": "biomass-defold",
+  "version": "1.0.0",
+  "description": "Biomass - Sci-Fi Turn-Based Puzzle Strategy Game in Defold",
+  "main": "game.js",
+  "scripts": {
+    "start": "npx serve .",
+    "lint": "node scripts/lint.js"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "keywords": [
+    "defold",
+    "puzzle",
+    "strategy",
+    "biomass",
+    "lua",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biomass - Sci-Fi Containment Puzzle Game</title>
+  <meta name="description" content="A turn-based strategy puzzle game built for Defold engine. Contain and isolate expanding bio-hazards with barricade walls.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <svg class="bio-hazard-icon" viewBox="0 0 24 24">
+        <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z"/>
+      </svg>
+      <h1 class="game-title">BIOMASS</h1>
+    </div>
+    <div class="subtitle">Defold Tactical Containment Protocol</div>
+  </header>
+
+  <div class="app-container">
+
+    <!-- Top Stats Banner -->
+    <div class="stats-bar">
+      <div class="stat-group">
+        <span class="stat-label">Turn</span>
+        <span id="turnCounter" class="stat-value">1</span>
+      </div>
+
+      <div class="stat-group">
+        <span class="stat-label">Walls Remaining</span>
+        <span id="wallsLeftCounter" class="stat-value walls-left">2 / 2</span>
+      </div>
+
+      <div class="stat-group">
+        <span class="stat-label">Active Biomass</span>
+        <span id="biomassCounter" class="stat-value bio-count">1</span>
+      </div>
+
+      <div class="stat-group">
+        <span class="stat-label">Max Grid Capacity</span>
+        <span id="maxThresholdCounter" class="stat-value">12</span>
+      </div>
+    </div>
+
+    <!-- Level Info & Objectives -->
+    <div class="level-info-banner">
+      <div>
+        <span class="level-title-text" id="levelTitle">Level 1: Containment 101</span> — 
+        <span id="levelDesc">Place walls on grid borders to trap and isolate biomass.</span>
+      </div>
+      <div>
+        Spread Rate: <strong id="spreadRateText" style="color:var(--accent-cyan)">1 step/turn</strong>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="control-bar">
+      <div class="level-selector-container">
+        <span class="level-selector-label">LEVEL:</span>
+        <select id="levelSelect" class="level-select">
+          <option value="1">Level 1: Containment 101</option>
+          <option value="2">Level 2: Twin Spores</option>
+          <option value="3">Level 3: Divided Sectors</option>
+          <option value="4">Level 4: Rapid Mutation</option>
+          <option value="5">Level 5: Corridor Siege</option>
+          <option value="6">Level 6: Infection Wave</option>
+          <option value="7">Level 7: Bio-Reactor Breach</option>
+          <option value="8">Level 8: Outbreak Zero</option>
+        </select>
+      </div>
+
+      <div class="btn-group">
+        <button id="undoBtn" class="btn btn-secondary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          Undo
+        </button>
+
+        <button id="resetBtn" class="btn btn-danger">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Reset
+        </button>
+
+        <button id="endTurnBtn" class="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          End Turn
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="level-selector-label">ANIM SPEED:</span>
+        <div class="speed-toggle">
+          <button class="speed-btn active" data-speed="1">1x</button>
+          <button class="speed-btn" data-speed="2">2x</button>
+          <button class="speed-btn" data-speed="5">Skip</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas Workspace -->
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="toast-hint">
+      💡 Hover mouse near cell borders to highlight edge. Click to place barricade wall. Sealed biomass without reachable empty cells dies off!
+    </div>
+
+  </div>
+
+  <!-- Win / Loss Modal Dialog -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div id="modalCard" class="modal-card win-modal">
+      <h2 id="modalTitle" class="modal-title">CONTAINMENT COMPLETE</h2>
+      
+      <div id="starContainer" class="star-rating">
+        <span class="star active">★</span>
+        <span class="star active">★</span>
+        <span class="star active">★</span>
+      </div>
+
+      <p id="modalBody" class="modal-body">
+        All active biomass cells deactivated! Sector cleared in 4 turns.
+      </p>
+
+      <div class="modal-actions">
+        <button id="modalRetryBtn" class="btn btn-secondary">Retry Level</button>
+        <button id="modalNextBtn" class="btn btn-primary">Next Level</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Synthesizer & Web Harness Game Logic -->
+  <script src="game.js"></script>
+
+</body>
+</html>
