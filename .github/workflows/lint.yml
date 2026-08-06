@@ -2,33 +2,27 @@ name: Code Quality & Lint
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ master ]
 
 jobs:
   lint:
-    name: Lint JavaScript & Lua
+    name: Lint Lua Scripts
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
+      - name: Setup Lua
+        uses: leafo/gh-actions-lua@v10
+
+      - name: Setup Luarocks
+        uses: leafo/gh-actions-luarocks@v4
 
       - name: Install Luacheck
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y luarocks
-          sudo luarocks install luacheck
-
-      - name: Install Dependencies
-        run: npm ci || npm install
+        run: luarocks install luacheck
 
       - name: Run Project Linter
-        run: npm run lint
+        run: make lint

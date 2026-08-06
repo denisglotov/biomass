@@ -1,0 +1,245 @@
+-- HUD GUI script for Biomass in Defold Engine
+local grid = require "scripts.grid"
+local level_manager = require "scripts.level_manager"
+local sound = require "scripts.sound"
+
+local function create_rect(x, y, w, h, color, id)
+    local node = gui.new_box_node(vmath.vector3(x, y, 0.0), vmath.vector3(w, h, 0))
+    gui.set_size_mode(node, gui.SIZE_MODE_MANUAL)
+    gui.set_size(node, vmath.vector3(w, h, 0))
+    gui.set_color(node, color)
+    if id then gui.set_id(node, id) end
+    return node
+end
+
+local function create_circle(x, y, radius, color, id)
+    local node = gui.new_pie_node(vmath.vector3(x, y, 0.0), vmath.vector3(radius * 2, radius * 2, 0))
+    gui.set_size_mode(node, gui.SIZE_MODE_MANUAL)
+    gui.set_size(node, vmath.vector3(radius * 2, radius * 2, 0))
+    gui.set_color(node, color)
+    if id then gui.set_id(node, id) end
+    return node
+end
+
+local function refresh_grid_display(self)
+    -- Remove previous dynamic grid cells/walls nodes
+    if self.grid_nodes then
+        for _, node in ipairs(self.grid_nodes) do gui.delete_node(node) end
+    end
+    self.grid_nodes = {}
+
+    local rows, cols = self.game_grid.rows, self.game_grid.cols
+    local max_dim = math.max(rows, cols)
+    local cell_size = math.min(500 / max_dim, 75)
+    local center_x, center_y = 512, 380
+    local start_x = center_x - (cols * cell_size) / 2
+    local start_y = center_y + (rows * cell_size) / 2
+
+    self.cell_size = cell_size
+    self.start_x = start_x
+    self.start_y = start_y
+
+    -- Render Grid Cells & Biomass
+    for r = 0, rows - 1 do
+        for c = 0, cols - 1 do
+            local cx = start_x + c * cell_size + cell_size / 2
+            local cy = start_y - r * cell_size - cell_size / 2
+
+            local state = self.game_grid.cells[r][c].state
+            local color = vmath.vector4(0.1, 0.15, 0.22, 1)
+
+            local node = create_rect(cx, cy, cell_size - 4, cell_size - 4, color)
+            table.insert(self.grid_nodes, node)
+
+            if state == 1 then
+                local bio_node = create_circle(cx, cy, cell_size * 0.35, vmath.vector4(0.2, 1, 0.2, 1))
+                table.insert(self.grid_nodes, bio_node)
+                gui.animate(bio_node, gui.PROP_SCALE, vmath.vector3(1.2, 1.2, 1.0), gui.EASING_INOUTSINE, 0.4, 0, nil, gui.PLAYBACK_LOOP_PINGPONG)
+            end
+        end
+    end
+
+    -- Render Horizontal Walls
+    for r = 0, rows - 2 do
+        for c = 0, cols - 1 do
+            if self.game_grid.h_edges[r][c] == 1 then
+                local wx = start_x + c * cell_size + cell_size / 2
+                local wy = start_y - (r + 1) * cell_size
+                local wall_node = create_rect(wx, wy, cell_size, 6, vmath.vector4(0, 0.9, 1, 1))
+                table.insert(self.grid_nodes, wall_node)
+            end
+        end
+    end
+
+    -- Render Vertical Walls
+    for r = 0, rows - 1 do
+        for c = 0, cols - 2 do
+            if self.game_grid.v_edges[r][c] == 1 then
+                local wx = start_x + (c + 1) * cell_size
+                local wy = start_y - r * cell_size - cell_size / 2
+                local wall_node = create_rect(wx, wy, 6, cell_size, vmath.vector4(0, 0.9, 1, 1))
+                table.insert(self.grid_nodes, wall_node)
+            end
+        end
+    end
+
+    -- Update Stats text
+    local b_count = self.game_grid:get_biomass_count()
+    local w_rem = self.game_grid.n_walls_per_turn - self.game_grid.walls_placed_this_turn
+    gui.set_text(gui.get_node("stats_turn"), "Turn: " .. self.game_grid.turn)
+    gui.set_text(gui.get_node("stats_walls"), "Walls: " .. w_rem .. " / " .. self.game_grid.n_walls_per_turn)
+    gui.set_text(gui.get_node("stats_bio"), "Biomass: " .. b_count .. " / " .. self.game_grid.max_threshold)
+end
+
+local function show_endgame_modal(self, title_text, body_text, title_color)
+    self.modal_nodes = {}
+    
+    -- Overlay
+    local overlay = create_rect(512, 384, 1024, 768, vmath.vector4(0, 0, 0, 0.8))
+    table.insert(self.modal_nodes, overlay)
+    
+    -- Modal Box
+    local box = create_rect(512, 384, 460, 200, vmath.vector4(0.05, 0.08, 0.12, 1))
+    table.insert(self.modal_nodes, box)
+    
+    -- Title
+    local title = gui.new_text_node(vmath.vector3(512, 430, 0), title_text)
+    gui.set_font(title, "system_font")
+    gui.set_color(title, title_color)
+    gui.set_scale(title, vmath.vector3(1.8, 1.8, 1))
+    table.insert(self.modal_nodes, title)
+    
+    -- Body
+    local body = gui.new_text_node(vmath.vector3(512, 370, 0), body_text)
+    gui.set_font(body, "system_font")
+    gui.set_color(body, vmath.vector4(0.9, 0.9, 0.9, 1))
+    table.insert(self.modal_nodes, body)
+    
+    -- Instruction
+    local instr = gui.new_text_node(vmath.vector3(512, 320, 0), "Click anywhere to restart")
+    gui.set_font(instr, "system_font")
+    gui.set_color(instr, vmath.vector4(0.5, 0.5, 0.5, 1))
+    table.insert(self.modal_nodes, instr)
+end
+
+local function hide_endgame_modal(self)
+    if self.modal_nodes then
+        for _, node in ipairs(self.modal_nodes) do gui.delete_node(node) end
+    end
+    self.modal_nodes = nil
+end
+
+local function handle_click(self, x, y)
+    -- Check UI Buttons
+    if x >= 250 and x <= 390 and y >= 35 and y <= 85 then
+        msg.post(".", "trigger_undo")
+        return
+    elseif x >= 442 and x <= 582 and y >= 35 and y <= 85 then
+        msg.post(".", "trigger_reset")
+        return
+    elseif x >= 624 and x <= 784 and y >= 35 and y <= 85 then
+        msg.post(".", "trigger_end_turn")
+        return
+    end
+
+    -- Grid Edge Click
+    local cell_size = self.cell_size
+    local rows, cols = self.game_grid.rows, self.game_grid.cols
+    local gx = x - self.start_x
+    local gy = self.start_y - y
+
+    local c = math.floor(gx / cell_size)
+    local r = math.floor(gy / cell_size)
+
+    if r >= 0 and r < rows and c >= 0 and c < cols then
+        local dist_top = gy - r * cell_size
+        local dist_bottom = (r + 1) * cell_size - gy
+        local dist_left = gx - c * cell_size
+        local dist_right = (c + 1) * cell_size - gx
+
+        local min_dist = math.min(dist_top, dist_bottom, dist_left, dist_right)
+        local placed = false
+
+        if min_dist == dist_bottom and r < rows - 1 then
+            placed = self.game_grid:place_wall("h", r, c)
+        elseif min_dist == dist_top and r > 0 then
+            placed = self.game_grid:place_wall("h", r - 1, c)
+        elseif min_dist == dist_right and c < cols - 1 then
+            placed = self.game_grid:place_wall("v", r, c)
+        elseif min_dist == dist_left and c > 0 then
+            placed = self.game_grid:place_wall("v", r, c - 1)
+        end
+
+        if placed then
+            sound.play("wall")
+            refresh_grid_display(self)
+            
+            if self.game_grid.walls_placed_this_turn >= self.game_grid.n_walls_per_turn then
+                msg.post(".", "trigger_end_turn")
+            end
+        end
+    end
+end
+
+local function handle_modal_click(self)
+    if self.modal_nodes then
+        hide_endgame_modal(self)
+        
+        if self.last_modal_status == "win" then
+            self.current_level_idx = self.current_level_idx + 1
+            if self.current_level_idx > level_manager.get_total_levels() then
+                self.current_level_idx = 1 -- Loop back to start if finished
+            end
+            self.level_config = level_manager.get_level(self.current_level_idx)
+        end
+        
+        self.game_grid:load_level(self.level_config)
+        sound.play("click")
+        refresh_grid_display(self)
+        self.last_modal_status = nil
+        return true
+    end
+    return false
+end
+
+function init(self)
+    print("HUD INIT SUCCESSFUL!")
+    self.grid_nodes = {}
+    self.current_level_idx = 1
+    self.level_config = level_manager.get_level(self.current_level_idx)
+    self.game_grid = grid.create(self.level_config.rows, self.level_config.cols,
+                                 self.level_config.n_walls_per_turn, self.level_config.n_steps_spread,
+                                 self.level_config.max_threshold)
+    self.game_grid:load_level(self.level_config)
+
+    refresh_grid_display(self)
+end
+
+function on_message(self, message_id, message, sender)
+    if message_id == hash("click_at") then
+        if not handle_modal_click(self) then
+            handle_click(self, message.x, message.y)
+        end
+    elseif message_id == hash("trigger_undo") then
+        if self.game_grid:undo_wall() then
+            sound.play("click")
+            refresh_grid_display(self)
+        end
+    elseif message_id == hash("trigger_reset") then
+        self.game_grid:load_level(self.level_config)
+        sound.play("click")
+        refresh_grid_display(self)
+    elseif message_id == hash("trigger_end_turn") then
+        local result = self.game_grid:end_turn()
+        sound.play("spread")
+        refresh_grid_display(self)
+        
+        self.last_modal_status = result.status
+        
+        if result.status == "win" then
+            show_endgame_modal(self, "CONTAINMENT COMPLETE", "Sector cleared in " .. self.game_grid.turn .. " turns.", vmath.vector4(0.2, 1.0, 0.2, 1.0))
+        elseif result.status == "loss" then
+            show_endgame_modal(self, "CONTAINMENT BREACH", "Biomass overtook the sector.", vmath.vector4(1.0, 0.2, 0.2, 1.0))
+        end
+    end
+end

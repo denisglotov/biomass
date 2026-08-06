@@ -1,71 +1,24 @@
--- main.script for Biomass Defold game
-local grid = require "scripts.grid"
 local level_manager = require "scripts.level_manager"
-local sound = require "scripts.sound"
 
 function init(self)
     msg.post(".", "acquire_input_focus")
     self.current_level_id = 1
     self.level_config = level_manager.get_level(self.current_level_id)
-    self.game_grid = grid.create(self.level_config.rows, self.level_config.cols, 
-                                 self.level_config.n_walls_per_turn, self.level_config.n_steps_spread,
-                                 self.level_config.max_threshold)
-    self.game_grid:load_level(self.level_config)
-    self.state = "playing" -- "playing", "animating", "win", "loss"
-    self.anim_speed = 1 -- 1x, 2x, 5x (instant/skip)
-    
     print("Biomass Defold Initialized. Loaded Level " .. self.current_level_id .. ": " .. self.level_config.title)
 end
 
 function on_input(self, action_id, action)
     if action_id == hash("touch") and action.pressed then
-        -- Edge click interaction is handled via hover & click calculations
         msg.post("#hud", "click_at", { x = action.x, y = action.y })
     elseif action_id == hash("undo") and action.pressed then
-        if self.game_grid:undo_wall() then
-            sound.play("click")
-            msg.post("#hud", "update_grid")
-        end
+        msg.post("#hud", "trigger_undo")
     elseif action_id == hash("reset") and action.pressed then
-        self.game_grid:load_level(self.level_config)
-        self.state = "playing"
-        sound.play("click")
-        msg.post("#hud", "update_grid")
+        msg.post("#hud", "trigger_reset")
     elseif action_id == hash("end_turn") and action.pressed then
         msg.post("#hud", "trigger_end_turn")
     end
 end
 
 function on_message(self, message_id, message, sender)
-    if message_id == hash("select_level") then
-        self.current_level_id = message.level_id
-        self.level_config = level_manager.get_level(self.current_level_id)
-        self.game_grid:load_level(self.level_config)
-        self.state = "playing"
-        sound.play("click")
-    elseif message_id == hash("place_wall") then
-        local success = self.game_grid:place_wall(message.edge_type, message.r, message.c)
-        if success then
-            sound.play("wall")
-        end
-    elseif message_id == hash("end_turn") then
-        if self.state ~= "playing" then return end
-        self.state = "animating"
-        
-        local result = self.game_grid:end_turn()
-        sound.play("spread")
-        
-        -- Send spread steps and isolation results to HUD/render script for animated playback
-        msg.post("#hud", "animate_turn_result", result)
-        
-        if result.status == "win" then
-            self.state = "win"
-            sound.play("win")
-        elseif result.status == "loss" then
-            self.state = "loss"
-            sound.play("loss")
-        else
-            self.state = "playing"
-        end
-    end
+    -- State managed by hud.gui_script
 end

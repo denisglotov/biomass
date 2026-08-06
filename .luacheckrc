@@ -29,7 +29,17 @@ globals = {
     "on_reload",
 }
 
--- Ignore whitespace-only lines
+-- Ignore whitespace-only lines and unused arguments
 ignore = {
     "631", -- line is too long
+    "611", -- line contains only whitespace
+    "612", -- line contains trailing whitespace
+    "212", -- unused argument
+}
+
+include_files = {
+    "**/*.lua",
+    "**/*.script",
+    "**/*.gui_script",
+    "**/*.render_script",
 }

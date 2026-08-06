@@ -1,0 +1,241 @@
+script: "/main/hud.gui_script"
+fonts {
+  name: "system_font"
+  font: "/builtins/fonts/default.font"
+}
+nodes {
+  position {
+    x: 512.0
+    y: 384.0
+    z: 0.0
+  }
+  size {
+    x: 1024.0
+    y: 768.0
+    z: 0.0
+  }
+  color {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 0.0
+  }
+  type: TYPE_BOX
+  id: "bg"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_MANUAL
+}
+nodes {
+  position {
+    x: 512.0
+    y: 730.0
+    z: 0.0
+  }
+  scale {
+    x: 1.5
+    y: 1.5
+    z: 1.0
+  }
+  color {
+    x: 0.0
+    y: 0.9
+    z: 1.0
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "BIOMASS - TACTICAL CONTAINMENT"
+  font: "system_font"
+  id: "title"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 250.0
+    y: 680.0
+    z: 0.0
+  }
+  scale {
+    x: 1.1
+    y: 1.1
+    z: 1.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Turn: 1"
+  font: "system_font"
+  id: "stats_turn"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 450.0
+    y: 680.0
+    z: 0.0
+  }
+  scale {
+    x: 1.1
+    y: 1.1
+    z: 1.0
+  }
+  color {
+    x: 0.0
+    y: 1.0
+    z: 0.5
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Walls: 2 / 2"
+  font: "system_font"
+  id: "stats_walls"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 680.0
+    y: 680.0
+    z: 0.0
+  }
+  scale {
+    x: 1.1
+    y: 1.1
+    z: 1.0
+  }
+  color {
+    x: 0.2
+    y: 1.0
+    z: 0.2
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "Biomass: 1 / 12"
+  font: "system_font"
+  id: "stats_bio"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 320.0
+    y: 60.0
+    z: 0.0
+  }
+  size {
+    x: 140.0
+    y: 45.0
+    z: 0.0
+  }
+  color {
+    x: 0.15
+    y: 0.25
+    z: 0.4
+    w: 1.0
+  }
+  type: TYPE_BOX
+  id: "btn_undo_bg"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_MANUAL
+}
+nodes {
+  position {
+    x: 320.0
+    y: 60.0
+    z: 0.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "UNDO (Z)"
+  font: "system_font"
+  id: "btn_undo_lbl"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 512.0
+    y: 60.0
+    z: 0.0
+  }
+  size {
+    x: 140.0
+    y: 45.0
+    z: 0.0
+  }
+  color {
+    x: 0.5
+    y: 0.15
+    z: 0.2
+    w: 1.0
+  }
+  type: TYPE_BOX
+  id: "btn_reset_bg"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_MANUAL
+}
+nodes {
+  position {
+    x: 512.0
+    y: 60.0
+    z: 0.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "RESET (R)"
+  font: "system_font"
+  id: "btn_reset_lbl"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 704.0
+    y: 60.0
+    z: 0.0
+  }
+  size {
+    x: 160.0
+    y: 45.0
+    z: 0.0
+  }
+  color {
+    x: 0.1
+    y: 0.6
+    z: 0.3
+    w: 1.0
+  }
+  type: TYPE_BOX
+  id: "btn_end_bg"
+  inherit_alpha: true
+  size_mode: SIZE_MODE_MANUAL
+}
+nodes {
+  position {
+    x: 704.0
+    y: 60.0
+    z: 0.0
+  }
+  color {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+    w: 1.0
+  }
+  type: TYPE_TEXT
+  text: "END TURN (SPACE)"
+  font: "system_font"
+  id: "btn_end_lbl"
+  inherit_alpha: true
+}
+material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT

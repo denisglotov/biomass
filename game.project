@@ -2,6 +2,9 @@
 title = Biomass
 version = 1.0.0
 write_application_title = 1
+[bootstrap]
+main_collection = /main/main.collectionc
+
 
 [display]
 width = 1024
@@ -11,11 +14,16 @@ fullscreen = 0
 update_frequency = 60
 
 [render]
+render = /builtins/render/default.render
 clear_color = 0.05, 0.06, 0.10, 1.0
 
 [input]
-game_binding = /main/game.input_binding
+game_binding = /main/game.input_bindingc
 use_gamepad_template = 1
 
 [script]
 shared_state = 1
+
+[html5]
+htmlfile = /main/index.html
+

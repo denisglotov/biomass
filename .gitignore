@@ -1,6 +1,10 @@
 # Defold Engine build outputs & cache
 .internal/
 build/
+dist/
+bob.jar
+scratch/
+*.der
 *.app/
 *.apk/
 *.ipa/

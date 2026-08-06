@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<title>Biomass - Defold WASM</title>
+	<style>
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			padding: 0;
+			background-color: #07090e;
+			color: #00e5ff;
+			font-family: system-ui, -apple-system, sans-serif;
+			overflow: hidden;
+		}
+		.canvas-app-container {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			background-color: #07090e;
+		}
+		#canvas-container {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		#canvas {
+			outline: none;
+			border: 2px solid #00e5ff;
+			box-shadow: 0 0 25px rgba(0, 229, 255, 0.4);
+			border-radius: 8px;
+			background-color: #0d121d;
+		}
+		.canvas-app-progress {
+			position: absolute;
+			top: 0;
+			left: 0;
+			height: 4px;
+			background-color: #00e5ff;
+			width: 100%;
+		}
+	</style>
+</head>
+<body>
+	<div id="app-container" class="canvas-app-container">
+		<div id="canvas-container" class="canvas-app-canvas-container">
+			<canvas id="canvas" class="canvas-app-canvas" tabindex="1" width="1024" height="768"></canvas>
+		</div>
+	</div>
+	<script id='engine-loader' type='text/javascript' src="dmloader.js"></script>
+	<script id='engine-setup' type='text/javascript'>
+		var CUSTOM_PARAMETERS = {
+			archive_location_filter: function( path ) {
+				return ("{{DEFOLD_ARCHIVE_LOCATION_PREFIX}}" + path + "{{DEFOLD_ARCHIVE_LOCATION_SUFFIX}}");
+			},
+			engine_arguments: [{{#DEFOLD_ENGINE_ARGUMENTS}}"{{.}}",{{/DEFOLD_ENGINE_ARGUMENTS}}],
+			custom_heap_size: {{DEFOLD_HEAP_SIZE}},
+			full_screen_container: "#canvas-container",
+			disable_context_menu: true
+		};
+	</script>
+	<script id='engine-start' type='text/javascript'>
+		EngineLoader.load("canvas", "{{exe-name}}");
+	</script>
+</body>
+</html>
