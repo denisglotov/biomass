@@ -2,9 +2,9 @@ name: Code Quality & Lint
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, defold ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, defold ]
 
 jobs:
   lint:
