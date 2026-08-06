@@ -14,6 +14,10 @@ android/app/build/
 *.apk
 *.aab
 
+# Local helper scripts & Python virtual environment
+tools/
+.venv/
+
 # OS generated files
 .DS_Store
 .DS_Store?
