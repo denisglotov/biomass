@@ -20,6 +20,7 @@ globals = {
     "model",
     "physics",
     "zlib",
+    "timer",
     "init",
     "final",
     "update",
