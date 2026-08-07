@@ -1,6 +1,6 @@
 # Biomass - Sci-Fi Turn-Based Containment Strategy Game
 
-**Biomass** is a turn-based strategy puzzle game developed for the **Defold Game Engine**. The player commands containment forces on a 2D grid facility to trap, isolate, and neutralize expanding sci-fi bio-hazards.
+**Biomass** is an HTML5 Canvas turn-based strategy puzzle game. The player commands containment forces on a 2D grid facility to trap, isolate, and neutralize expanding sci-fi bio-hazards.
 
 
 ## 🎮 Game Rules & Mechanics
@@ -14,7 +14,7 @@
 
 1. **Player Phase (Barricade Deployment)**
    - Place up to $N_{\text{walls}}$ barricade walls on open passable edges per turn.
-   - Includes **Undo Wall Placement** ($Z$) and **Reset Level** ($R$).
+   - Includes **Undo Wall Placement** (`Z`) and **Reset Level** (`R`).
    - Press **End Turn** (Space) or auto-advance when wall placement limit is reached.
 
 2. **Biomass Phase (Spread Expansion)**
@@ -34,35 +34,20 @@
 
 ## 🚀 How to Run & Play
 
-### 1. Web Preview Harness (Instant Browser Play)
-Run the built-in interactive web server:
+Run the interactive web server:
 ```bash
 npm start
 ```
 Or open `index.html` directly in any web browser.
 
-### 2. Defold Game Engine (Native Build)
-1. Open **Defold IDE**.
-2. Select **Open Project** and navigate to this repository (`biomass`).
-3. Select `game.project`.
-4. Press **Project ➔ Build** (`Cmd+B` on macOS / `Ctrl+B` on Windows) to run natively or export to HTML5/macOS/iOS/Android/Windows.
 
+## 🔍 Code Quality & Linter
 
-## 🔍 Code Quality & IDE Configuration
-
-### 1. Project Linter
-Run automated static analysis across all JavaScript and Defold Lua scripts:
+Run automated linting:
 ```bash
 npm run lint
 ```
 - **JavaScript**: Linted using ESLint ([`.eslintrc.json`](.eslintrc.json)).
-- **Lua Scripts**: Static analysis via Luacheck ([`.luacheckrc`](.luacheckrc)).
 
-### 2. IDE Language Server Configuration
-The repository includes a local [`.luarc.json`](.luarc.json) file.
-- **Purpose**: Configures IDE Lua Language Servers (LuaLS) to recognize Defold engine C++ runtime globals (`sound`, `msg`, `hash`, `go`, `gui`, `render`, `vmath`, etc.) and lifecycle callbacks (`init`, `on_input`, `on_message`).
-- **Offline Compatibility**: Formatted locally without external `$schema` network download requirements.
-### 3. Continuous Integration (GitHub Actions)
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions automatically:
-- Sets up Node.js & installs Luacheck via `apt-get`.
-- Executes `npm run lint` across all JavaScript and Defold Lua codebase files.
+### Continuous Integration (GitHub Actions)
+Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions automatically installs Node.js dependencies and executes `npm run lint`.

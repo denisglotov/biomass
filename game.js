@@ -1,5 +1,4 @@
-// Biomass - Web Preview Harness & Engine Core
-// Perfectly mirrors Defold Lua grid engine rules & sound synthesis
+// Biomass - HTML5 Canvas & Web Audio Game Engine
 
 // Web Audio API Synthesizer
 class SoundManager {
@@ -10,7 +9,7 @@ class SoundManager {
 
   init() {
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const AudioCtx = window.AudioContext || window['webkitAudioContext'];
       if (AudioCtx) this.ctx = new AudioCtx();
     }
   }
@@ -103,7 +102,7 @@ class SoundManager {
   }
 }
 
-// Level Configurations (Matching scripts/level_manager.lua)
+// Level Configurations
 const LEVELS = [
   {
     id: 1,
@@ -187,7 +186,7 @@ const LEVELS = [
   }
 ];
 
-// Grid Engine Class (Mirroring scripts/grid.lua)
+// Grid Engine Class
 class BiomassGrid {
   constructor(config) {
     this.loadLevel(config);

@@ -1,9 +1,5 @@
-# Defold Engine build outputs & cache
-.internal/
-build/
-*.app/
-*.apk/
-*.ipa/
+# Build outputs & cache
+dist/
 
 # Node & NPM
 node_modules/
