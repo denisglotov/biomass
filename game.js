@@ -534,6 +534,15 @@ class GameApp {
 
     this.canvas.width = this.width;
     this.canvas.height = this.height;
+
+    this.centerCanvasScroll();
+  }
+
+  centerCanvasScroll() {
+    const wrapper = document.querySelector('.canvas-wrapper');
+    if (wrapper && wrapper.scrollWidth > wrapper.clientWidth) {
+      wrapper.scrollLeft = (wrapper.scrollWidth - wrapper.clientWidth) / 2;
+    }
   }
 
   getClosestEdge(clientX, clientY) {
