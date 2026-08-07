@@ -4,7 +4,7 @@ data class LevelInfo(
     val id: Int,
     val title: String,
     val gridDimensions: String,
-    val wallsPerTurn: Int
+    val wallsPerTurn: Int,
 )
 
 class LevelRepository {
@@ -17,7 +17,7 @@ class LevelRepository {
             LevelInfo(5, "Corridor Siege", "7x7", 3),
             LevelInfo(6, "Infection Wave", "8x8", 3),
             LevelInfo(7, "Bio-Reactor Breach", "8x8", 3),
-            LevelInfo(8, "Outbreak Zero", "10x10", 4)
+            LevelInfo(8, "Outbreak Zero", "10x10", 4),
         )
     }
 }

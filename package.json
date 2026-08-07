@@ -5,9 +5,9 @@
   "main": "game.js",
   "scripts": {
     "start": "npx serve .",
-    "lint": "eslint ."
-    "build:android": "./scripts/build-android.sh",
-    "install:android": "node scripts/install-android.js"
+    "lint": "eslint .",
+    "lint:kotlin": "./scripts/lint-kotlin.sh",
+    "build:android": "./scripts/build-android.sh"
   },
   "devDependencies": {
     "eslint": "^8.57.0"

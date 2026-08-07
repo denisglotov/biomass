@@ -7,7 +7,6 @@ import org.dymka.biomass.di.AppContainer
 import org.dymka.biomass.viewmodel.BiomassViewModel
 
 class MainActivity : ComponentActivity() {
-
     // AppContainer initialized for Manual Dependency Injection
     private lateinit var appContainer: AppContainer
     private lateinit var viewModel: BiomassViewModel

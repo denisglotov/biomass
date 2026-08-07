@@ -34,6 +34,7 @@
 
 ## 🚀 How to Run & Play
 
+### 1. Web Application
 Run the interactive web server:
 ```bash
 npm start
@@ -41,24 +42,32 @@ npm start
 Or open `index.html` directly in any web browser.
 
 
-### 3. Android Application Build (100% CLI)
+### 2. Android App (Kotlin + Jetpack Compose)
 
-Build the native Kotlin + Compose Android app via terminal:
+Build the debug APK:
 ```bash
-# 1. Sync assets & compile APK via Gradle CLI
 npm run build:android
-
-# 2. Install APK directly to connected Android device / emulator via adb CLI
-npm run install:android
 ```
-- **Source Code**:
-- **Stack**: Kotlin + Jetpack Compose + Manual Dependency Injection ([`AppContainer.kt`](android/app/src/main/java/com/biomass/game/di/AppContainer.kt)).
+* **Output APK**: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+Install to a connected device or emulator using `adb`:
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+*(If upgrading over an existing build signed with a different key, run `adb uninstall org.dymka.biomass` first).*
 
 
 ## 🔍 Code Quality & Linter
 
 Run automated linting:
 ```bash
+# Lint JavaScript files
 npm run lint
+
+# Lint Kotlin sources and Gradle scripts
+npm run lint:kotlin
 ```
-- **JavaScript**: Linted using ESLint ([`.eslintrc.json`](.eslintrc.json)).
+
+### Continuous Integration (GitHub Actions)
+Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions automatically installs Node.js dependencies and executes `npm run lint`.

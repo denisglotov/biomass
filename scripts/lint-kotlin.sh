@@ -9,17 +9,14 @@ fi
 
 export PATH="$JAVA_HOME/bin:$PATH"
 
-echo "=== Building Kotlin + Jetpack Compose Android APK (CLI) ==="
+echo "=== Running Kotlin Lint Check (ktlintCheck) ==="
 cd android
 
 if [ -f "./gradlew" ]; then
-  ./gradlew assembleDebug --no-daemon
+  ./gradlew ktlintCheck --no-daemon
 elif command -v gradle &> /dev/null; then
-  gradle assembleDebug --no-daemon
+  gradle ktlintCheck --no-daemon
 else
-  echo "Gradle wrapper not initialized yet."
+  echo "Gradle wrapper not found."
   exit 1
 fi
-
-echo "=== APK Built Successfully ==="
-echo "APK Output: android/app/build/outputs/apk/debug/app-debug.apk"

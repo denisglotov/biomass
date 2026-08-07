@@ -1,14 +1,16 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.0"
 }
 
-val syncWebAssets = tasks.register<Copy>("syncWebAssets") {
-    from("${project.rootDir}/..") {
-        include("index.html", "styles.css", "game.js", "favicon.ico")
+val syncWebAssets =
+    tasks.register<Copy>("syncWebAssets") {
+        from("${project.rootDir}/..") {
+            include("index.html", "styles.css", "game.js", "favicon.ico")
+        }
+        into(layout.buildDirectory.dir("generated/assets/www"))
     }
-    into(layout.buildDirectory.dir("generated/assets/www"))
-}
 
 android {
     namespace = "org.dymka.biomass"
@@ -38,7 +40,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
