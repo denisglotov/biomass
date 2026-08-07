@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+    branches: [ master, defold ]
+  pull_request:
+    branches: [ master, defold ]
+
+jobs:
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup and Download Defold bob.jar
+        run: make setup
+
+      - name: Build Web
+        run: make build JAVA=java
+
+      - name: Upload Web Build
+        uses: actions/upload-artifact@v7
+        with:
+          name: biomass-web
+          path: dist/
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup and Download Defold bob.jar
+        run: make setup
+
+      - name: Build Android
+        run: make build-android JAVA=java
+
+      - name: Upload Android Build
+        uses: actions/upload-artifact@v7
+        with:
+          name: biomass-android
+          path: dist-android/

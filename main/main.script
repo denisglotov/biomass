@@ -2,6 +2,7 @@ local level_manager = require "scripts.level_manager"
 
 function init(self)
     msg.post(".", "acquire_input_focus")
+    msg.post("@render:", "use_fixed_fit_projection")
     self.current_level_id = 1
     self.level_config = level_manager.get_level(self.current_level_id)
     print("Biomass Defold Initialized. Loaded Level " .. self.current_level_id .. ": " .. self.level_config.title)

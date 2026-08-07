@@ -31,7 +31,7 @@ local function refresh_grid_display(self)
     local rows, cols = self.game_grid.rows, self.game_grid.cols
     local max_dim = math.max(rows, cols)
     local cell_size = math.min(500 / max_dim, 75)
-    local center_x, center_y = 512, 380
+    local center_x, center_y = 384, 512
     local start_x = center_x - (cols * cell_size) / 2
     local start_y = center_y + (rows * cell_size) / 2
 
@@ -95,28 +95,28 @@ local function show_endgame_modal(self, title_text, body_text, title_color)
     self.modal_nodes = {}
     
     -- Overlay
-    local overlay = create_rect(512, 384, 1024, 768, vmath.vector4(0, 0, 0, 0.8))
+    local overlay = create_rect(384, 512, 768, 1024, vmath.vector4(0, 0, 0, 0.8))
     table.insert(self.modal_nodes, overlay)
     
     -- Modal Box
-    local box = create_rect(512, 384, 460, 200, vmath.vector4(0.05, 0.08, 0.12, 1))
+    local box = create_rect(384, 512, 460, 200, vmath.vector4(0.05, 0.08, 0.12, 1))
     table.insert(self.modal_nodes, box)
     
     -- Title
-    local title = gui.new_text_node(vmath.vector3(512, 430, 0), title_text)
+    local title = gui.new_text_node(vmath.vector3(384, 560, 0), title_text)
     gui.set_font(title, "system_font")
     gui.set_color(title, title_color)
     gui.set_scale(title, vmath.vector3(1.8, 1.8, 1))
     table.insert(self.modal_nodes, title)
     
     -- Body
-    local body = gui.new_text_node(vmath.vector3(512, 370, 0), body_text)
+    local body = gui.new_text_node(vmath.vector3(384, 500, 0), body_text)
     gui.set_font(body, "system_font")
     gui.set_color(body, vmath.vector4(0.9, 0.9, 0.9, 1))
     table.insert(self.modal_nodes, body)
     
     -- Instruction
-    local instr = gui.new_text_node(vmath.vector3(512, 320, 0), "Click anywhere to restart")
+    local instr = gui.new_text_node(vmath.vector3(384, 450, 0), "Click anywhere to restart")
     gui.set_font(instr, "system_font")
     gui.set_color(instr, vmath.vector4(0.5, 0.5, 0.5, 1))
     table.insert(self.modal_nodes, instr)
@@ -139,13 +139,13 @@ end
 
 local function handle_click(self, x, y)
     -- Check UI Buttons
-    if x >= 250 and x <= 390 and y >= 35 and y <= 85 then
+    if x >= 122 and x <= 262 and y >= 35 and y <= 85 then
         msg.post(".", "trigger_undo")
         return
-    elseif x >= 442 and x <= 582 and y >= 35 and y <= 85 then
+    elseif x >= 314 and x <= 454 and y >= 35 and y <= 85 then
         msg.post(".", "trigger_reset")
         return
-    elseif x >= 624 and x <= 784 and y >= 35 and y <= 85 then
+    elseif x >= 496 and x <= 656 and y >= 35 and y <= 85 then
         msg.post(".", "trigger_end_turn")
         return
     end

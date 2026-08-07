@@ -7,8 +7,8 @@ main_collection = /main/main.collectionc
 
 
 [display]
-width = 1024
-height = 768
+width = 768
+height = 1024
 high_dpi = 1
 fullscreen = 0
 update_frequency = 60
@@ -27,3 +27,5 @@ shared_state = 1
 [html5]
 htmlfile = /main/index.html
 
+[android]
+package = org.dymka.biomass
