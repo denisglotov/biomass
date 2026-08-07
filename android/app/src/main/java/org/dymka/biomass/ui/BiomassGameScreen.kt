@@ -8,10 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-import org.dymka.biomass.viewmodel.BiomassViewModel
 
 @Composable
-fun BiomassGameScreen(viewModel: BiomassViewModel) {
+fun BiomassGameScreen() {
     Box(
         modifier = Modifier.fillMaxSize(),
     ) {
