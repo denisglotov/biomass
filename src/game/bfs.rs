@@ -1,7 +1,9 @@
 use super::grid::{CellType, Grid};
+use macroquad::rand::gen_range;
 use std::collections::{HashSet, VecDeque};
 
-/// Performs BFS step-by-step biomass expansion up to `steps` distance.
+/// Performs step-by-step biomass expansion up to `steps` distance.
+/// Each active biomass cell produces 1 new cell per step (chosen randomly among adjacent free cells).
 /// Returns a list of steps, where each step contains the coordinates `(r, c)` of newly infected cells.
 pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(usize, usize)>> {
     let mut steps_history = Vec::new();
@@ -24,8 +26,16 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
         let mut step_newly_infected = Vec::new();
         let mut frontier: Vec<(usize, usize)> = Vec::new();
 
-        for &(r, c) in &current_biomass {
-            // Check 4 orthogonal neighbors
+        let mut biomass_list: Vec<(usize, usize)> = current_biomass.iter().copied().collect();
+        // Randomize biomass cell processing order so priority is fair
+        if biomass_list.len() > 1 {
+            for i in (1..biomass_list.len()).rev() {
+                let j = gen_range(0, i + 1);
+                biomass_list.swap(i, j);
+            }
+        }
+
+        for &(r, c) in &biomass_list {
             let neighbors = [
                 (r.wrapping_sub(1), c),
                 (r + 1, c),
@@ -33,6 +43,7 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
                 (r, c + 1),
             ];
 
+            let mut candidates = Vec::new();
             for &(nr, nc) in &neighbors {
                 if grid.is_valid_cell(nr, nc)
                     && grid.get_cell(nr, nc) == CellType::Empty
@@ -40,10 +51,17 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
                     && !infected_this_turn.contains(&(nr, nc))
                     && !grid.has_wall_between(r, c, nr, nc)
                 {
-                    infected_this_turn.insert((nr, nc));
-                    step_newly_infected.push((nr, nc));
-                    frontier.push((nr, nc));
+                    candidates.push((nr, nc));
                 }
+            }
+
+            if !candidates.is_empty() {
+                let idx = gen_range(0, candidates.len());
+                let (target_r, target_c) = candidates[idx];
+
+                infected_this_turn.insert((target_r, target_c));
+                step_newly_infected.push((target_r, target_c));
+                frontier.push((target_r, target_c));
             }
         }
 

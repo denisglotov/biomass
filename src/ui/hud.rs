@@ -27,6 +27,7 @@ pub struct Shockwave {
 pub struct Hud {
     pub font: Option<Font>,
     pub hovered_edge: Option<Edge>,
+    pub suppressed_hover_edge: Option<Edge>,
     pub particles: Vec<Particle>,
     pub shockwaves: Vec<Shockwave>,
     pub pan_offset: (f32, f32),
@@ -44,6 +45,7 @@ impl Hud {
         Self {
             font,
             hovered_edge: None,
+            suppressed_hover_edge: None,
             particles: Vec::new(),
             shockwaves: Vec::new(),
             pan_offset: (0.0, 0.0),
@@ -139,8 +141,6 @@ impl Hud {
             (screen_h / 650.0).clamp(1.0, 4.0)
         };
 
-        let is_narrow = screen_w < 580.0 * scale;
-
         // Scaled layout constants
         let header_h = if is_portrait {
             52.0 * scale
@@ -156,11 +156,6 @@ impl Hud {
             38.0 * scale
         } else {
             32.0 * scale
-        };
-        let control_h = if is_narrow {
-            72.0 * scale // 2-row layout on mobile portrait
-        } else {
-            44.0 * scale // 1-row layout on landscape / wider screens
         };
         let grid_bottom_margin = 20.0 * scale;
 
@@ -181,15 +176,8 @@ impl Hud {
         let level_banner_y = stats_y + stats_h;
         self.draw_level_banner(state, screen_w, level_banner_y, scale);
 
-        // 5. Draw Control Bar (Level Selector, Action Buttons)
-        let control_bar_y = level_banner_y + banner_h;
-        let control_sound = self.draw_control_bar(state, screen_w, control_bar_y, control_h, scale);
-        if control_sound.is_some() {
-            sound_trigger = control_sound;
-        }
-
-        // 6. Draw Grid & Interactive Workspace (fill all remaining screen space)
-        let grid_top = control_bar_y + control_h;
+        // 5. Draw Grid & Interactive Workspace (fill all remaining screen space)
+        let grid_top = level_banner_y + banner_h;
         let side_margin = 12.0 * scale;
         let viewport_w = (screen_w - side_margin * 2.0).max(200.0);
         let viewport_h = (screen_h - grid_top - grid_bottom_margin).max(200.0);
@@ -402,162 +390,6 @@ impl Hud {
             font_size,
             Color::from_rgba(255, 255, 255, 255),
         );
-    }
-
-    fn draw_control_bar(
-        &self,
-        state: &mut GameState,
-        screen_w: f32,
-        y: f32,
-        h: f32,
-        scale: f32,
-    ) -> Option<SoundTrigger> {
-        let mut sound_trigger = None;
-        let mouse_pos = mouse_position();
-        let clicked = is_mouse_button_pressed(MouseButton::Left);
-
-        let is_narrow = screen_w < 580.0 * scale;
-
-        if is_narrow {
-            // 2-row layout for narrow mobile portrait displays
-            let row1_y = y + 2.0 * scale;
-            let row2_y = y + h / 2.0 + 2.0 * scale;
-            let btn_h = (h / 2.0 - 6.0 * scale).max(28.0 * scale);
-
-            // Row 1: Level Selector (< LEVEL X / Y >) centered
-            let center_x = screen_w / 2.0;
-            let btn_w = 34.0 * scale;
-            let sel_w = 200.0 * scale;
-            let sel_left = center_x - sel_w / 2.0;
-
-            let prev_rect = Rect::new(sel_left, row1_y, btn_w, btn_h);
-            let next_rect = Rect::new(sel_left + sel_w - btn_w, row1_y, btn_w, btn_h);
-
-            self.draw_button("◀", prev_rect, mouse_pos, 16.0 * scale);
-            if clicked && prev_rect.contains(mouse_pos.into()) && state.current_level_idx > 0 {
-                state.load_level(state.current_level_idx - 1);
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let lvl_str = format!(
-                "LEVEL {} / {}",
-                state.current_level_idx + 1,
-                state.levels.len()
-            );
-            let lvl_dim = self.measure_text_str(&lvl_str, 16.0 * scale);
-            self.draw_text_str(
-                &lvl_str,
-                center_x - lvl_dim.width / 2.0,
-                row1_y + btn_h * 0.68,
-                16.0 * scale,
-                Color::from_rgba(0, 229, 255, 255),
-            );
-
-            self.draw_button("▶", next_rect, mouse_pos, 16.0 * scale);
-            if clicked
-                && next_rect.contains(mouse_pos.into())
-                && state.current_level_idx + 1 < state.levels.len()
-            {
-                state.load_level(state.current_level_idx + 1);
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            // Row 2: Action Buttons (Undo, Reset, End Turn) evenly distributed
-            let pad = 10.0 * scale;
-            let act_w = (screen_w - pad * 4.0) / 3.0;
-
-            let undo_rect = Rect::new(pad, row2_y, act_w, btn_h);
-            self.draw_button("↩ Undo", undo_rect, mouse_pos, 14.0 * scale);
-            if ((clicked && undo_rect.contains(mouse_pos.into())) || is_key_pressed(KeyCode::Z))
-                && state.undo()
-            {
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let reset_rect = Rect::new(pad * 2.0 + act_w, row2_y, act_w, btn_h);
-            self.draw_button("↺ Reset", reset_rect, mouse_pos, 14.0 * scale);
-            if (clicked && reset_rect.contains(mouse_pos.into())) || is_key_pressed(KeyCode::R) {
-                state.reset_level();
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let end_rect = Rect::new(pad * 3.0 + act_w * 2.0, row2_y, act_w, btn_h);
-            self.draw_button("▶ End Turn", end_rect, mouse_pos, 14.0 * scale);
-            if ((clicked && end_rect.contains(mouse_pos.into())) || is_key_pressed(KeyCode::Space))
-                && state.phase == GamePhase::PlayerTurn
-            {
-                state.end_turn();
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-        } else {
-            // 1-row layout for wide landscape / desktop displays
-            let btn_h = (h - 8.0 * scale).max(30.0 * scale);
-            let btn_y = y + (h - btn_h) / 2.0;
-            let center_x = screen_w / 2.0;
-
-            let btn_w = 36.0 * scale;
-            let selector_w = 220.0 * scale;
-
-            let sel_left = center_x - 250.0 * scale;
-            let prev_rect = Rect::new(sel_left, btn_y, btn_w, btn_h);
-            let next_rect = Rect::new(sel_left + selector_w - btn_w, btn_y, btn_w, btn_h);
-
-            self.draw_button("◀", prev_rect, mouse_pos, 16.0 * scale);
-            if clicked && prev_rect.contains(mouse_pos.into()) && state.current_level_idx > 0 {
-                state.load_level(state.current_level_idx - 1);
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let lvl_str = format!(
-                "LEVEL {} / {}",
-                state.current_level_idx + 1,
-                state.levels.len()
-            );
-            self.draw_text_str(
-                &lvl_str,
-                sel_left + 46.0 * scale,
-                btn_y + btn_h * 0.68,
-                16.0 * scale,
-                Color::from_rgba(0, 229, 255, 255),
-            );
-
-            self.draw_button("▶", next_rect, mouse_pos, 16.0 * scale);
-            if clicked
-                && next_rect.contains(mouse_pos.into())
-                && state.current_level_idx + 1 < state.levels.len()
-            {
-                state.load_level(state.current_level_idx + 1);
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let act_start_x = center_x - 10.0 * scale;
-
-            let undo_rect = Rect::new(act_start_x, btn_y, 95.0 * scale, btn_h);
-            self.draw_button("↩ Undo (Z)", undo_rect, mouse_pos, 14.0 * scale);
-            if ((clicked && undo_rect.contains(mouse_pos.into())) || is_key_pressed(KeyCode::Z))
-                && state.undo()
-            {
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let reset_rect = Rect::new(act_start_x + 101.0 * scale, btn_y, 95.0 * scale, btn_h);
-            self.draw_button("↺ Reset (R)", reset_rect, mouse_pos, 14.0 * scale);
-            if (clicked && reset_rect.contains(mouse_pos.into())) || is_key_pressed(KeyCode::R) {
-                state.reset_level();
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-
-            let end_rect = Rect::new(act_start_x + 202.0 * scale, btn_y, 125.0 * scale, btn_h);
-            self.draw_button("▶ End Turn", end_rect, mouse_pos, 14.0 * scale);
-            if ((clicked && end_rect.contains(mouse_pos.into())) || is_key_pressed(KeyCode::Space))
-                && state.phase == GamePhase::PlayerTurn
-            {
-                state.end_turn();
-                sound_trigger = Some(SoundTrigger::WallPlace);
-            }
-        }
-
-        sound_trigger
     }
 
     fn draw_button(&self, label: &str, rect: Rect, mouse_pos: (f32, f32), font_size: f32) {
@@ -896,7 +728,6 @@ impl Hud {
         let rel_y = mouse_pos.1 - viewport_y - self.pan_offset.1;
 
         if state.phase == GamePhase::PlayerTurn
-            && state.walls_left > 0
             && !was_dragging
             && in_viewport
             && rel_x >= 0.0
@@ -925,111 +756,286 @@ impl Hud {
                     Edge::Vertical { r, c: c + 1 }
                 };
 
-                if state.grid.can_place_wall(edge) {
-                    self.hovered_edge = Some(edge);
+                if state.placed_walls_this_turn.contains(&edge)
+                    || (state.walls_left > 0 && state.grid.can_place_wall(edge))
+                {
+                    if self.suppressed_hover_edge == Some(edge) {
+                        // Suppress hover highlight right after wall removal until cursor moves
+                    } else {
+                        self.hovered_edge = Some(edge);
+                        if self.suppressed_hover_edge.is_some()
+                            && self.suppressed_hover_edge != Some(edge)
+                        {
+                            self.suppressed_hover_edge = None;
+                        }
+                    }
                 }
             }
         }
 
         // 7. Draw Hovered Edge Highlight & Click Handler
         if let Some(edge) = self.hovered_edge {
-            self.draw_edge_highlight(
-                edge,
-                gx,
-                gy,
-                cell_size,
-                cell_size,
-                Color::from_rgba(0, 229, 255, 255),
-                scale,
-            );
+            let is_in_construction = state.placed_walls_this_turn.contains(&edge);
+            let highlight_color = if is_in_construction {
+                Color::from_rgba(255, 82, 82, 255) // Red warning highlight for removal
+            } else {
+                Color::from_rgba(0, 229, 255, 255) // Cyan highlight for placement
+            };
 
-            if mouse_released && !was_dragging && state.try_place_wall(edge) {
-                sound_trigger = Some(SoundTrigger::WallPlace);
+            self.draw_edge_highlight(edge, gx, gy, cell_size, cell_size, highlight_color, scale);
 
-                let (wx, wy) = match edge {
-                    Edge::Horizontal { r, c } => {
-                        (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size)
+            if mouse_released && !was_dragging {
+                if is_in_construction {
+                    if state.remove_placed_wall(edge) {
+                        self.hovered_edge = None;
+                        self.suppressed_hover_edge = Some(edge);
+                        sound_trigger = Some(SoundTrigger::WallPlace);
+
+                        let (wx, wy) = match edge {
+                            Edge::Horizontal { r, c } => {
+                                (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size)
+                            }
+                            Edge::Vertical { r, c } => {
+                                (gx + c as f32 * cell_size, gy + (r as f32 + 0.5) * cell_size)
+                            }
+                        };
+                        self.spawn_shockwave(
+                            wx,
+                            wy,
+                            Color::from_rgba(255, 82, 82, 255),
+                            cell_size * 1.1,
+                        );
+                        self.spawn_burst(wx, wy, Color::from_rgba(255, 171, 0, 255), 20);
                     }
-                    Edge::Vertical { r, c } => {
-                        (gx + c as f32 * cell_size, gy + (r as f32 + 0.5) * cell_size)
-                    }
-                };
-                self.spawn_shockwave(wx, wy, Color::from_rgba(0, 229, 255, 255), cell_size * 0.9);
-                self.spawn_burst(wx, wy, Color::from_rgba(0, 229, 255, 255), 16);
+                } else if state.walls_left > 0 && state.try_place_wall(edge) {
+                    sound_trigger = Some(SoundTrigger::WallPlace);
+
+                    let (wx, wy) = match edge {
+                        Edge::Horizontal { r, c } => {
+                            (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size)
+                        }
+                        Edge::Vertical { r, c } => {
+                            (gx + c as f32 * cell_size, gy + (r as f32 + 0.5) * cell_size)
+                        }
+                    };
+                    self.spawn_shockwave(
+                        wx,
+                        wy,
+                        Color::from_rgba(0, 229, 255, 255),
+                        cell_size * 0.9,
+                    );
+                    self.spawn_burst(wx, wy, Color::from_rgba(0, 229, 255, 255), 16);
+                }
             }
         }
 
-        // 8. Render 3D Cyan Barricade Walls
+        // 8. Render Barricade Walls (Permanent Cyan & In-Construction Hazard Amber)
         for r in 0..=rows {
             for c in 0..cols {
-                if state.grid.get_edge(Edge::Horizontal { r, c }) == EdgeState::Wall {
+                let edge = Edge::Horizontal { r, c };
+                if state.grid.get_edge(edge) == EdgeState::Wall {
                     let wx = gx + c as f32 * cell_size;
                     let wy = gy + r as f32 * cell_size;
+                    let is_in_construction = state.placed_walls_this_turn.contains(&edge);
 
-                    draw_line(
-                        wx,
-                        wy,
-                        wx + cell_size,
-                        wy,
-                        10.0 * scale,
-                        Color::from_rgba(0, 229, 255, 90),
-                    );
-                    draw_line(
-                        wx,
-                        wy,
-                        wx + cell_size,
-                        wy,
-                        5.0 * scale,
-                        Color::from_rgba(0, 200, 230, 255),
-                    );
-                    draw_line(wx, wy, wx + cell_size, wy, 2.0 * scale, WHITE);
+                    if is_in_construction {
+                        let shine_phase = (t * 7.5).sin() * 0.5 + 0.5;
+                        let main_alpha = (60.0 + 195.0 * shine_phase) as u8;
+                        let aura_alpha = (10.0 + 200.0 * shine_phase) as u8;
+                        let aura_w = (8.0 + 8.0 * shine_phase) * scale;
 
-                    draw_circle(wx, wy, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
-                    draw_circle(wx, wy, 2.0 * scale, WHITE);
-                    draw_circle(
-                        wx + cell_size,
-                        wy,
-                        5.0 * scale,
-                        Color::from_rgba(0, 229, 255, 255),
-                    );
-                    draw_circle(wx + cell_size, wy, 2.0 * scale, WHITE);
+                        // Outer shining hazard aura
+                        draw_line(
+                            wx,
+                            wy,
+                            wx + cell_size,
+                            wy,
+                            aura_w,
+                            Color::from_rgba(255, 180, 0, aura_alpha),
+                        );
+                        // Main hazard yellow line (shines on and off)
+                        draw_line(
+                            wx,
+                            wy,
+                            wx + cell_size,
+                            wy,
+                            6.0 * scale,
+                            Color::from_rgba(
+                                255,
+                                (170.0 + 70.0 * shine_phase) as u8,
+                                0,
+                                main_alpha,
+                            ),
+                        );
+                        // Neon yellow-white core
+                        draw_line(
+                            wx,
+                            wy,
+                            wx + cell_size,
+                            wy,
+                            2.0 * scale,
+                            Color::from_rgba(
+                                255,
+                                255,
+                                (160.0 + 95.0 * shine_phase) as u8,
+                                main_alpha,
+                            ),
+                        );
+
+                        let node_r = (4.0 + 2.0 * shine_phase) * scale;
+                        draw_circle(wx, wy, node_r, Color::from_rgba(255, 191, 0, main_alpha));
+                        draw_circle(
+                            wx,
+                            wy,
+                            node_r * 0.5,
+                            Color::from_rgba(255, 255, 220, main_alpha),
+                        );
+                        draw_circle(
+                            wx + cell_size,
+                            wy,
+                            node_r,
+                            Color::from_rgba(255, 191, 0, main_alpha),
+                        );
+                        draw_circle(
+                            wx + cell_size,
+                            wy,
+                            node_r * 0.5,
+                            Color::from_rgba(255, 255, 220, main_alpha),
+                        );
+                    } else {
+                        draw_line(
+                            wx,
+                            wy,
+                            wx + cell_size,
+                            wy,
+                            10.0 * scale,
+                            Color::from_rgba(0, 229, 255, 90),
+                        );
+                        draw_line(
+                            wx,
+                            wy,
+                            wx + cell_size,
+                            wy,
+                            5.0 * scale,
+                            Color::from_rgba(0, 200, 230, 255),
+                        );
+                        draw_line(wx, wy, wx + cell_size, wy, 2.0 * scale, WHITE);
+
+                        draw_circle(wx, wy, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
+                        draw_circle(wx, wy, 2.0 * scale, WHITE);
+                        draw_circle(
+                            wx + cell_size,
+                            wy,
+                            5.0 * scale,
+                            Color::from_rgba(0, 229, 255, 255),
+                        );
+                        draw_circle(wx + cell_size, wy, 2.0 * scale, WHITE);
+                    }
                 }
             }
         }
 
         for r in 0..rows {
             for c in 0..=cols {
-                if state.grid.get_edge(Edge::Vertical { r, c }) == EdgeState::Wall {
+                let edge = Edge::Vertical { r, c };
+                if state.grid.get_edge(edge) == EdgeState::Wall {
                     let wx = gx + c as f32 * cell_size;
                     let wy = gy + r as f32 * cell_size;
+                    let is_in_construction = state.placed_walls_this_turn.contains(&edge);
 
-                    draw_line(
-                        wx,
-                        wy,
-                        wx,
-                        wy + cell_size,
-                        10.0 * scale,
-                        Color::from_rgba(0, 229, 255, 90),
-                    );
-                    draw_line(
-                        wx,
-                        wy,
-                        wx,
-                        wy + cell_size,
-                        5.0 * scale,
-                        Color::from_rgba(0, 200, 230, 255),
-                    );
-                    draw_line(wx, wy, wx, wy + cell_size, 2.0 * scale, WHITE);
+                    if is_in_construction {
+                        let shine_phase = (t * 7.5).sin() * 0.5 + 0.5;
+                        let main_alpha = (60.0 + 195.0 * shine_phase) as u8;
+                        let aura_alpha = (10.0 + 200.0 * shine_phase) as u8;
+                        let aura_w = (8.0 + 8.0 * shine_phase) * scale;
 
-                    draw_circle(wx, wy, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
-                    draw_circle(wx, wy, 2.0 * scale, WHITE);
-                    draw_circle(
-                        wx,
-                        wy + cell_size,
-                        5.0 * scale,
-                        Color::from_rgba(0, 229, 255, 255),
-                    );
-                    draw_circle(wx, wy + cell_size, 2.0 * scale, WHITE);
+                        // Outer shining hazard aura
+                        draw_line(
+                            wx,
+                            wy,
+                            wx,
+                            wy + cell_size,
+                            aura_w,
+                            Color::from_rgba(255, 180, 0, aura_alpha),
+                        );
+                        // Main hazard yellow line (shines on and off)
+                        draw_line(
+                            wx,
+                            wy,
+                            wx,
+                            wy + cell_size,
+                            6.0 * scale,
+                            Color::from_rgba(
+                                255,
+                                (170.0 + 70.0 * shine_phase) as u8,
+                                0,
+                                main_alpha,
+                            ),
+                        );
+                        // Neon yellow-white core
+                        draw_line(
+                            wx,
+                            wy,
+                            wx,
+                            wy + cell_size,
+                            2.0 * scale,
+                            Color::from_rgba(
+                                255,
+                                255,
+                                (160.0 + 95.0 * shine_phase) as u8,
+                                main_alpha,
+                            ),
+                        );
+
+                        let node_r = (4.0 + 2.0 * shine_phase) * scale;
+                        draw_circle(wx, wy, node_r, Color::from_rgba(255, 191, 0, main_alpha));
+                        draw_circle(
+                            wx,
+                            wy,
+                            node_r * 0.5,
+                            Color::from_rgba(255, 255, 220, main_alpha),
+                        );
+                        draw_circle(
+                            wx,
+                            wy + cell_size,
+                            node_r,
+                            Color::from_rgba(255, 191, 0, main_alpha),
+                        );
+                        draw_circle(
+                            wx,
+                            wy + cell_size,
+                            node_r * 0.5,
+                            Color::from_rgba(255, 255, 220, main_alpha),
+                        );
+                    } else {
+                        draw_line(
+                            wx,
+                            wy,
+                            wx,
+                            wy + cell_size,
+                            10.0 * scale,
+                            Color::from_rgba(0, 229, 255, 90),
+                        );
+                        draw_line(
+                            wx,
+                            wy,
+                            wx,
+                            wy + cell_size,
+                            5.0 * scale,
+                            Color::from_rgba(0, 200, 230, 255),
+                        );
+                        draw_line(wx, wy, wx, wy + cell_size, 2.0 * scale, WHITE);
+
+                        draw_circle(wx, wy, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
+                        draw_circle(wx, wy, 2.0 * scale, WHITE);
+                        draw_circle(
+                            wx,
+                            wy + cell_size,
+                            5.0 * scale,
+                            Color::from_rgba(0, 229, 255, 255),
+                        );
+                        draw_circle(wx, wy + cell_size, 2.0 * scale, WHITE);
+                    }
                 }
             }
         }
@@ -1210,6 +1216,16 @@ impl Hud {
         let next_rect = Rect::new(card_x + card_w - btn_w - 20.0 * scale, btn_y, btn_w, btn_h);
         if is_win {
             self.draw_button("▶ Next Level", next_rect, mouse_pos, 15.0 * scale);
+            if clicked && next_rect.contains(mouse_pos.into()) {
+                if state.current_level_idx + 1 < state.levels.len() {
+                    state.load_level(state.current_level_idx + 1);
+                } else {
+                    state.reset_level();
+                }
+                sound_trigger = Some(SoundTrigger::WallPlace);
+            }
+        } else {
+            self.draw_button("⏭ Skip Level", next_rect, mouse_pos, 15.0 * scale);
             if clicked && next_rect.contains(mouse_pos.into()) {
                 if state.current_level_idx + 1 < state.levels.len() {
                     state.load_level(state.current_level_idx + 1);

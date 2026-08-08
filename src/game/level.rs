@@ -2,8 +2,6 @@ use super::grid::{Edge, Grid};
 
 #[derive(Debug, Clone)]
 pub struct Level {
-    #[allow(dead_code)]
-    pub id: usize,
     pub title: String,
     pub description: String,
     pub rows: usize,
@@ -39,7 +37,6 @@ impl Level {
 pub fn get_levels() -> Vec<Level> {
     vec![
         Level {
-            id: 1,
             title: "Level 1: Containment 101".to_string(),
             description: "Place walls on grid borders to trap and isolate biomass.".to_string(),
             rows: 5,
@@ -52,7 +49,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 2,
             title: "Level 2: Twin Spores".to_string(),
             description: "Multiple active outbreak points detected. Isolate both sectors."
                 .to_string(),
@@ -66,7 +62,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 3,
             title: "Level 3: Pillar Defense".to_string(),
             description: "Facility structural pillars block biomass expansion and wall placement."
                 .to_string(),
@@ -80,7 +75,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 4,
             title: "Level 4: Divided Sectors".to_string(),
             description: "Utilize existing facility security barriers to quickly enclose spores."
                 .to_string(),
@@ -98,7 +92,6 @@ pub fn get_levels() -> Vec<Level> {
             ],
         },
         Level {
-            id: 5,
             title: "Level 5: Rapid Mutation".to_string(),
             description: "WARNING: High-speed mutation! Biomass expands 2 steps per turn."
                 .to_string(),
@@ -112,7 +105,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 6,
             title: "Level 6: Central Rock Fortress".to_string(),
             description: "Four central containment pillars restrict open corridor pathways."
                 .to_string(),
@@ -126,7 +118,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 7,
             title: "Level 7: Corridor Siege".to_string(),
             description: "Narrow corridor network. Seal off choke points before infection spreads."
                 .to_string(),
@@ -149,7 +140,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 8,
             title: "Level 8: Outbreak Zero".to_string(),
             description: "Triple spore outbreak across large grid layout.".to_string(),
             rows: 9,
@@ -162,7 +152,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 9,
             title: "Level 9: Bio-Lab Hazard".to_string(),
             description: "Multi-spore rapid outbreak with facility structural obstacles."
                 .to_string(),
@@ -176,7 +165,6 @@ pub fn get_levels() -> Vec<Level> {
             initial_walls: vec![],
         },
         Level {
-            id: 10,
             title: "Level 10: Bio-Reactor Meltdown".to_string(),
             description:
                 "FINAL PROTOCOL: 4 active spores in a 10x10 reactor core with tight capacity!"

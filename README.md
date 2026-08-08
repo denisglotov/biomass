@@ -17,12 +17,14 @@ The player commands facility containment forces on a 2D grid to trap, isolate, a
 
 1. **Player Phase (Barricade Deployment)**
    - Place up to $N_{\text{walls}}$ barricade walls on open passable edges per turn.
+   - Walls placed during the current turn appear in **Hazard Amber ("In-Construction")** state with an animated construction aura.
+   - Click an **in-construction wall** again to remove it and refund the wall point.
    - Includes **Undo Wall Placement** (`Z`) and **Reset Level** (`R`).
-   - Press **End Turn** (Space) or auto-advance when wall placement limit is reached.
+   - Press **End Turn** (Space) or auto-advance when all walls for the step are set.
 
 2. **Biomass Phase (Spread Expansion)**
-   - Active biomass cells expand up to $N_{\text{steps}}$ distance using Breadth-First Search (BFS).
-   - Infection transfers across adjacent cells if and only if the shared edge is passable (no wall) and target cell is not an obstacle.
+   - Each active biomass cell produces **one new cell per step** (randomly into an adjacent free cell unblocked by walls or obstacles).
+   - Infection expands up to $N_{\text{steps}}$ distance per turn.
    - Animated step-by-step with speed controls (**1x**, **2x**, **Skip**).
 
 3. **Isolation Phase (Die-off via Sealed Enclosure Rule)**
@@ -113,17 +115,17 @@ cargo install --path ./cargo-quad-apk --force
 rustup target add aarch64-linux-android
 ```
 
-**JDK 17+** (JDK 8 is no longer required)
+**JDK+**
 
 ```bash
-brew install --cask temurin  # or any JDK 17+
+brew install --cask temurin@21  # or any JDK 17+
 ```
 
 ### Building
 
 ```bash
 ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
-  cargo quad-apk build --release
+  just build-android
 ```
 
 The APK will be created at:

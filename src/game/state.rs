@@ -1,6 +1,7 @@
 use super::bfs::{evaluate_sealed_enclosure_dieoff, expand_biomass_step_by_step};
 use super::grid::{CellType, Edge, EdgeState, Grid};
 use super::level::{get_levels, Level};
+use super::storage::{load_last_level_reached, save_last_level_reached};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GamePhase {
@@ -11,14 +12,6 @@ pub enum GamePhase {
     Defeat,
 }
 
-#[derive(Debug, Clone)]
-pub struct UndoState {
-    pub grid: Grid,
-    pub turn_number: usize,
-    pub walls_left: usize,
-    pub placed_walls_this_turn: Vec<Edge>,
-}
-
 pub struct GameState {
     pub levels: Vec<Level>,
     pub current_level_idx: usize,
@@ -27,7 +20,6 @@ pub struct GameState {
     pub turn_number: usize,
     pub walls_left: usize,
     pub phase: GamePhase,
-    pub undo_stack: Vec<UndoState>,
     pub placed_walls_this_turn: Vec<Edge>,
 
     // Animation state
@@ -45,7 +37,8 @@ pub struct GameState {
 impl GameState {
     pub fn new() -> Self {
         let levels = get_levels();
-        let current_level_idx = 0;
+        let saved_level_idx = load_last_level_reached().min(levels.len().saturating_sub(1));
+        let current_level_idx = saved_level_idx;
         let level = levels[current_level_idx].clone();
         let grid = level.create_initial_grid();
         let walls_left = level.walls_per_turn;
@@ -58,7 +51,6 @@ impl GameState {
             turn_number: 1,
             walls_left,
             phase: GamePhase::PlayerTurn,
-            undo_stack: Vec::new(),
             placed_walls_this_turn: Vec::new(),
             anim_timer: 0.0,
             expansion_steps: Vec::new(),
@@ -73,12 +65,12 @@ impl GameState {
     pub fn load_level(&mut self, level_idx: usize) {
         if level_idx < self.levels.len() {
             self.current_level_idx = level_idx;
+            save_last_level_reached(level_idx);
             self.level = self.levels[level_idx].clone();
             self.grid = self.level.create_initial_grid();
             self.turn_number = 1;
             self.walls_left = self.level.walls_per_turn;
             self.phase = GamePhase::PlayerTurn;
-            self.undo_stack.clear();
             self.placed_walls_this_turn.clear();
             self.expansion_steps.clear();
             self.current_anim_step = 0;
@@ -93,38 +85,12 @@ impl GameState {
         self.load_level(self.current_level_idx);
     }
 
-    pub fn save_undo_snapshot(&mut self) {
-        self.undo_stack.push(UndoState {
-            grid: self.grid.clone(),
-            turn_number: self.turn_number,
-            walls_left: self.walls_left,
-            placed_walls_this_turn: self.placed_walls_this_turn.clone(),
-        });
-    }
-
-    pub fn undo(&mut self) -> bool {
-        if self.phase != GamePhase::PlayerTurn {
-            return false;
-        }
-
-        if let Some(snapshot) = self.undo_stack.pop() {
-            self.grid = snapshot.grid;
-            self.turn_number = snapshot.turn_number;
-            self.walls_left = snapshot.walls_left;
-            self.placed_walls_this_turn = snapshot.placed_walls_this_turn;
-            true
-        } else {
-            false
-        }
-    }
-
     pub fn try_place_wall(&mut self, edge: Edge) -> bool {
         if self.phase != GamePhase::PlayerTurn || self.walls_left == 0 {
             return false;
         }
 
         if self.grid.can_place_wall(edge) {
-            self.save_undo_snapshot();
             self.grid.set_edge(edge, EdgeState::Wall);
             self.placed_walls_this_turn.push(edge);
             self.walls_left -= 1;
@@ -138,12 +104,25 @@ impl GameState {
         }
     }
 
+    pub fn remove_placed_wall(&mut self, edge: Edge) -> bool {
+        if self.phase != GamePhase::PlayerTurn {
+            return false;
+        }
+
+        if let Some(pos) = self.placed_walls_this_turn.iter().position(|&e| e == edge) {
+            self.placed_walls_this_turn.remove(pos);
+            self.grid.set_edge(edge, EdgeState::Passable);
+            self.walls_left += 1;
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn end_turn(&mut self) {
         if self.phase != GamePhase::PlayerTurn {
             return;
         }
-
-        self.save_undo_snapshot();
 
         // Calculate biomass expansion steps
         self.expansion_steps = expand_biomass_step_by_step(&self.grid, self.level.spread_steps);
