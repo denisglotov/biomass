@@ -78,3 +78,76 @@ just ci
 
 ### Continuous Integration (GitHub Actions)
 Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and WebAssembly compilation.
+
+---
+
+## 📱 Building for Android
+
+### Prerequisites
+
+**Android SDK & NDK**
+
+Install via [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) or Homebrew:
+
+```bash
+brew install --cask android-commandlinetools
+sdkmanager "platforms;android-35" "ndk;26.1.10909125" "build-tools;35.0.0"
+```
+
+> The minimum tested NDK version is **r26**. NDK r26+ ships LLVM-only toolchains
+> (no legacy GNU binutils). `cargo-quad-apk` from git handles this correctly.
+
+**cargo-quad-apk (from git — required)**
+
+The published crates.io version (`0.1.4`, 2022) does not support NDK r26+, JDK 17+,
+or Android API 31+ manifest requirements. Install from the upstream git repo instead:
+
+```bash
+git clone https://github.com/not-fl3/cargo-quad-apk
+cargo install --path ./cargo-quad-apk --force
+```
+
+**Rust Android target**
+
+```bash
+rustup target add aarch64-linux-android
+```
+
+**JDK 17+** (JDK 8 is no longer required)
+
+```bash
+brew install --cask temurin  # or any JDK 17+
+```
+
+### Building
+
+```bash
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
+  cargo quad-apk build --release
+```
+
+The APK will be created at:
+```
+target/android-artifacts/release/apk/biomass.apk
+```
+
+### Installing & Running
+
+```bash
+# List connected devices
+adb devices
+
+# Install (replace the device serial as needed)
+adb -s <device-serial> install -r target/android-artifacts/release/apk/biomass.apk
+
+# Launch
+adb -s <device-serial> shell am start -n org.dymka.biomass/.MainActivity
+
+# View logs
+adb -s <device-serial> logcat -s biomass
+```
+
+### Cargo.toml Android metadata
+
+The Android package name, version, and target API are configured in [`Cargo.toml`](Cargo.toml)
+under the `[package.metadata.android]` section.

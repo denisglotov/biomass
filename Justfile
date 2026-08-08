@@ -7,10 +7,18 @@ default:
 build:
     cargo build
 
+# Run the native app
+run:
+    cargo run
+
 # Build release WebAssembly target and copy WASM binary to workspace root
 build-wasm:
     cargo build --target wasm32-unknown-unknown --release
     cp target/wasm32-unknown-unknown/release/biomass.wasm ./biomass.wasm
+
+# Build android image
+build-android:
+    cargo quad-apk build --release
 
 # Check for compilation errors
 check:

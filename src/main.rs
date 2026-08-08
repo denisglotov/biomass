@@ -10,9 +10,10 @@ use ui::hud::Hud;
 fn window_conf() -> Conf {
     Conf {
         window_title: "Biomass - Sci-Fi Tactical Containment".to_string(),
-        window_width: 900,
-        window_height: 800,
+        window_width: 1400,
+        window_height: 1050,
         high_dpi: true,
+        window_resizable: true,
         fullscreen: false,
         sample_count: 4,
         ..Default::default()

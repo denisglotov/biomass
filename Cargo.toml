@@ -10,3 +10,14 @@ macroquad = "0.4"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 macroquad = { version = "0.4", features = ["audio"] }
+
+[package.metadata.android]
+package_name = "org.dymka.biomass"
+label = "Biomass"
+version_code = 1
+version_name = "0.1.0"
+android_version = 35
+target_sdk_version = 35
+min_sdk_version = 23
+assets = "assets/"
+build_targets = ["aarch64-linux-android"]
