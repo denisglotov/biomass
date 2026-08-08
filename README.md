@@ -34,6 +34,7 @@
 
 ## 🚀 How to Run & Play
 
+### 1. Web Application
 Run the interactive web server:
 ```bash
 npm start
@@ -41,13 +42,32 @@ npm start
 Or open `index.html` directly in any web browser.
 
 
+### 2. Android App (Kotlin + Jetpack Compose)
+
+Build the debug APK:
+```bash
+npm run build:android
+```
+* **Output APK**: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+Install to a connected device or emulator using `adb`:
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+*(If upgrading over an existing build signed with a different key, run `adb uninstall org.dymka.biomass` first).*
+
+
 ## 🔍 Code Quality & Linter
 
 Run automated linting:
 ```bash
+# Lint JavaScript files
 npm run lint
+
+# Lint Kotlin sources and Gradle scripts
+npm run lint:kotlin
 ```
-- **JavaScript**: Linted using ESLint ([`.eslintrc.json`](.eslintrc.json)).
 
 ### Continuous Integration (GitHub Actions)
 Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions automatically installs Node.js dependencies and executes `npm run lint`.
