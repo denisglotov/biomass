@@ -1,14 +1,17 @@
-# Biomass - Sci-Fi Turn-Based Containment Strategy Game
+# Biomass - Sci-Fi Turn-Based Containment Strategy Game (Rust + WebAssembly)
 
-**Biomass** is an HTML5 Canvas turn-based strategy puzzle game. The player commands containment forces on a 2D grid facility to trap, isolate, and neutralize expanding sci-fi bio-hazards.
+**Biomass** is a tactical turn-based strategy puzzle game built entirely in **Rust** using **Macroquad** and compiled to **WebAssembly** (`wasm32-unknown-unknown`).
 
+The player commands facility containment forces on a 2D grid to trap, isolate, and neutralize expanding sci-fi bio-hazards before grid capacity limits are breached.
+
+---
 
 ## 🎮 Game Rules & Mechanics
 
 ### Environment & Components
 - **Facility Grid**: $M \times N$ matrix of cells $(r, c)$.
-- **Cell Component State**: `0` (Empty) or `1` (Active Biomass).
-- **Edge Barricades**: 4 borders per cell. Edge value `0` (Passable) or `1` (Wall).
+- **Cell Component State**: `Empty`, `Active Biomass`, or **`Impassable Obstacle`** (structural pillars/rocks blocking both biomass spread and wall placement).
+- **Edge Barricades**: 4 borders per cell. Edge value `Passable` or `Barricade Wall`.
 
 ### Turn Loop (Turn-Based Strategy)
 
@@ -19,35 +22,59 @@
 
 2. **Biomass Phase (Spread Expansion)**
    - Active biomass cells expand up to $N_{\text{steps}}$ distance using Breadth-First Search (BFS).
-   - Infection transfers across adjacent cells if and only if the shared edge is passable (`0` / no wall).
+   - Infection transfers across adjacent cells if and only if the shared edge is passable (no wall) and target cell is not an obstacle.
    - Animated step-by-step with speed controls (**1x**, **2x**, **Skip**).
 
 3. **Isolation Phase (Die-off via Sealed Enclosure Rule)**
    - Evaluates connected components of biomass across passable edges.
-   - **Sealed Enclosure Rule**: A biomass component dies off if it has no open path across passable edges to ANY empty cell (`0`) anywhere on the grid.
+   - **Sealed Enclosure Rule**: A biomass component dies off if it has no open path across passable edges to ANY empty cell anywhere on the grid.
    - When trapped inside a wall enclosure with no free empty cells left to infect, the biomass starves and deactivates.
 
 ### Terminal Conditions
-- **Win (+1 Reward)**: All active biomass cells are deactivated (0 remaining on grid).
-- **Loss (-1 Reward)**: Biomass count reaches/exceeds `MaxThreshold` OR no legal wall placement remains while active biomass exists.
+- **Victory**: All active biomass cells are deactivated (0 remaining on grid). Calculates 1-3 star performance rating based on turns taken.
+- **Defeat**: Biomass count reaches/exceeds `MaxThreshold` OR no legal wall placement remains while active biomass exists.
 
+---
 
-## 🚀 How to Run & Play
+## 🛠️ Quickstart with Justfile
 
-Run the interactive web server:
+This repository uses [`just`](Justfile) for all build, run, and testing workflows.
+
+### Prerequisites
+- [Rust toolchain](https://rustup.rs/) (1.80+)
+- WebAssembly target: `rustup target add wasm32-unknown-unknown`
+- [Just task runner](https://github.com/casey/just): `brew install just`
+
+### Common Workflows
+
 ```bash
-npm start
+# List all available recipes
+just
+
+# Build release WebAssembly target (creates biomass.wasm in root)
+just build-wasm
+
+# Serve the WebAssembly game locally on http://localhost:8080
+just serve
+
+# Run code formatting check
+just fmt-check
+
+# Run strict Clippy lints
+just clippy
+
+# Run full CI validation suite (formatting, clippy, WASM build)
+just ci
 ```
-Or open `index.html` directly in any web browser.
 
+---
 
-## 🔍 Code Quality & Linter
+## 🔍 Code Quality & Continuous Integration
 
-Run automated linting:
+Run the complete automated quality suite locally:
 ```bash
-npm run lint
+just ci
 ```
-- **JavaScript**: Linted using ESLint ([`.eslintrc.json`](.eslintrc.json)).
 
 ### Continuous Integration (GitHub Actions)
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions automatically installs Node.js dependencies and executes `npm run lint`.
+Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and WebAssembly compilation.

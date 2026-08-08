@@ -1,0 +1,12 @@
+[package]
+name = "biomass"
+version = "0.1.0"
+edition = "2021"
+authors = ["Denis Glotov"]
+description = "Biomass - Sci-Fi Turn-Based Containment Strategy Game"
+
+[dependencies]
+macroquad = "0.4"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+macroquad = { version = "0.4", features = ["audio"] }

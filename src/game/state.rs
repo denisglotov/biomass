@@ -1,0 +1,252 @@
+use super::bfs::{evaluate_sealed_enclosure_dieoff, expand_biomass_step_by_step};
+use super::grid::{CellType, Edge, EdgeState, Grid};
+use super::level::{get_levels, Level};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GamePhase {
+    PlayerTurn,
+    BiomassExpansionAnim,
+    IsolationCheck,
+    Victory,
+    Defeat,
+}
+
+#[derive(Debug, Clone)]
+pub struct UndoState {
+    pub grid: Grid,
+    pub turn_number: usize,
+    pub walls_left: usize,
+    pub placed_walls_this_turn: Vec<Edge>,
+}
+
+pub struct GameState {
+    pub levels: Vec<Level>,
+    pub current_level_idx: usize,
+    pub level: Level,
+    pub grid: Grid,
+    pub turn_number: usize,
+    pub walls_left: usize,
+    pub phase: GamePhase,
+    pub undo_stack: Vec<UndoState>,
+    pub placed_walls_this_turn: Vec<Edge>,
+
+    // Animation state
+    pub anim_timer: f32,
+    pub expansion_steps: Vec<Vec<(usize, usize)>>,
+    pub current_anim_step: usize,
+    pub dying_biomass: Vec<(usize, usize)>,
+    pub newly_infected_this_step: Vec<(usize, usize)>,
+    pub newly_starved_this_step: Vec<(usize, usize)>,
+
+    // End-of-level stats
+    pub star_rating: usize,
+}
+
+impl GameState {
+    pub fn new() -> Self {
+        let levels = get_levels();
+        let current_level_idx = 0;
+        let level = levels[current_level_idx].clone();
+        let grid = level.create_initial_grid();
+        let walls_left = level.walls_per_turn;
+
+        Self {
+            levels,
+            current_level_idx,
+            level,
+            grid,
+            turn_number: 1,
+            walls_left,
+            phase: GamePhase::PlayerTurn,
+            undo_stack: Vec::new(),
+            placed_walls_this_turn: Vec::new(),
+            anim_timer: 0.0,
+            expansion_steps: Vec::new(),
+            current_anim_step: 0,
+            dying_biomass: Vec::new(),
+            newly_infected_this_step: Vec::new(),
+            newly_starved_this_step: Vec::new(),
+            star_rating: 3,
+        }
+    }
+
+    pub fn load_level(&mut self, level_idx: usize) {
+        if level_idx < self.levels.len() {
+            self.current_level_idx = level_idx;
+            self.level = self.levels[level_idx].clone();
+            self.grid = self.level.create_initial_grid();
+            self.turn_number = 1;
+            self.walls_left = self.level.walls_per_turn;
+            self.phase = GamePhase::PlayerTurn;
+            self.undo_stack.clear();
+            self.placed_walls_this_turn.clear();
+            self.expansion_steps.clear();
+            self.current_anim_step = 0;
+            self.dying_biomass.clear();
+            self.newly_infected_this_step.clear();
+            self.newly_starved_this_step.clear();
+            self.anim_timer = 0.0;
+        }
+    }
+
+    pub fn reset_level(&mut self) {
+        self.load_level(self.current_level_idx);
+    }
+
+    pub fn save_undo_snapshot(&mut self) {
+        self.undo_stack.push(UndoState {
+            grid: self.grid.clone(),
+            turn_number: self.turn_number,
+            walls_left: self.walls_left,
+            placed_walls_this_turn: self.placed_walls_this_turn.clone(),
+        });
+    }
+
+    pub fn undo(&mut self) -> bool {
+        if self.phase != GamePhase::PlayerTurn {
+            return false;
+        }
+
+        if let Some(snapshot) = self.undo_stack.pop() {
+            self.grid = snapshot.grid;
+            self.turn_number = snapshot.turn_number;
+            self.walls_left = snapshot.walls_left;
+            self.placed_walls_this_turn = snapshot.placed_walls_this_turn;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn try_place_wall(&mut self, edge: Edge) -> bool {
+        if self.phase != GamePhase::PlayerTurn || self.walls_left == 0 {
+            return false;
+        }
+
+        if self.grid.can_place_wall(edge) {
+            self.save_undo_snapshot();
+            self.grid.set_edge(edge, EdgeState::Wall);
+            self.placed_walls_this_turn.push(edge);
+            self.walls_left -= 1;
+
+            if self.walls_left == 0 {
+                self.end_turn();
+            }
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn end_turn(&mut self) {
+        if self.phase != GamePhase::PlayerTurn {
+            return;
+        }
+
+        self.save_undo_snapshot();
+
+        // Calculate biomass expansion steps
+        self.expansion_steps = expand_biomass_step_by_step(&self.grid, self.level.spread_steps);
+        self.current_anim_step = 0;
+        self.anim_timer = 0.0;
+
+        if self.expansion_steps.is_empty() {
+            // Immediately apply expansion if no steps
+            self.apply_all_expansion();
+            self.start_isolation_phase();
+        } else {
+            self.phase = GamePhase::BiomassExpansionAnim;
+        }
+    }
+
+    fn apply_all_expansion(&mut self) {
+        for step in &self.expansion_steps {
+            for &(r, c) in step {
+                self.grid.set_cell(r, c, CellType::Biomass);
+                self.newly_infected_this_step.push((r, c));
+            }
+        }
+    }
+
+    pub fn update(&mut self, dt: f32) -> Option<SoundTrigger> {
+        let mut sound_trigger = None;
+
+        match self.phase {
+            GamePhase::BiomassExpansionAnim => {
+                let step_duration = 0.35;
+                self.anim_timer += dt;
+
+                if self.anim_timer >= step_duration {
+                    self.anim_timer = 0.0;
+                    if self.current_anim_step < self.expansion_steps.len() {
+                        for &(r, c) in &self.expansion_steps[self.current_anim_step] {
+                            self.grid.set_cell(r, c, CellType::Biomass);
+                            self.newly_infected_this_step.push((r, c));
+                        }
+                        sound_trigger = Some(SoundTrigger::BiomassTick);
+                        self.current_anim_step += 1;
+                    }
+
+                    if self.current_anim_step >= self.expansion_steps.len() {
+                        self.start_isolation_phase();
+                    }
+                }
+            }
+            GamePhase::IsolationCheck => {
+                // Apply starvation deactivation
+                for &(r, c) in &self.dying_biomass {
+                    self.grid.set_cell(r, c, CellType::Empty);
+                }
+
+                if !self.dying_biomass.is_empty() {
+                    sound_trigger = Some(SoundTrigger::IsolationPop);
+                }
+                self.dying_biomass.clear();
+
+                // Evaluate terminal conditions
+                let biomass_count = self.grid.count_biomass();
+
+                if biomass_count == 0 {
+                    self.phase = GamePhase::Victory;
+                    self.star_rating = if self.turn_number <= 3 {
+                        3
+                    } else if self.turn_number <= 6 {
+                        2
+                    } else {
+                        1
+                    };
+                    sound_trigger = Some(SoundTrigger::WinFanfare);
+                } else if biomass_count >= self.level.max_threshold
+                    || (!self.grid.has_any_legal_wall_placement() && biomass_count > 0)
+                {
+                    self.phase = GamePhase::Defeat;
+                    sound_trigger = Some(SoundTrigger::LossAlert);
+                } else {
+                    // Advance to next player turn
+                    self.turn_number += 1;
+                    self.walls_left = self.level.walls_per_turn;
+                    self.placed_walls_this_turn.clear();
+                    self.phase = GamePhase::PlayerTurn;
+                }
+            }
+            _ => {}
+        }
+
+        sound_trigger
+    }
+
+    fn start_isolation_phase(&mut self) {
+        self.phase = GamePhase::IsolationCheck;
+        self.dying_biomass = evaluate_sealed_enclosure_dieoff(&self.grid);
+        self.newly_starved_this_step = self.dying_biomass.clone();
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SoundTrigger {
+    WallPlace,
+    BiomassTick,
+    IsolationPop,
+    WinFanfare,
+    LossAlert,
+}
