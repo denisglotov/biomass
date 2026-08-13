@@ -203,6 +203,31 @@
           version: 1,
           name: "biomass_audio",
         });
+        miniquad_add_plugin({
+          register_plugin: function (env_obj) {
+            var STORAGE_KEY = "biomass_level";
+            env_obj.env.storage_save = function (value) {
+              try {
+                localStorage.setItem(STORAGE_KEY, value.toString());
+                return 1;
+              } catch (e) {
+                return 0;
+              }
+            };
+            env_obj.env.storage_load = function () {
+              try {
+                var val = localStorage.getItem(STORAGE_KEY);
+                if (val === null) return -1;
+                var parsed = parseInt(val, 10);
+                return isNaN(parsed) ? -1 : parsed;
+              } catch (e) {
+                return -1;
+              }
+            };
+          },
+          version: 1,
+          name: "biomass_storage",
+        });
         load("biomass.wasm?t=" + Date.now());
       };
       document.head.appendChild(script);
