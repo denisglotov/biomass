@@ -2,7 +2,7 @@
 name = "biomass"
 version = "0.1.0"
 edition = "2021"
-authors = ["Denis Glotov"]
+authors = ["Dymka"]
 description = "Biomass - Sci-Fi Turn-Based Containment Strategy Game"
 
 [dependencies]

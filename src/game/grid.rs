@@ -24,6 +24,7 @@ pub struct Grid {
     pub cells: Vec<CellType>,
     pub h_walls: Vec<EdgeState>,
     pub v_walls: Vec<EdgeState>,
+    pub active_biomass: std::collections::HashSet<(usize, usize)>,
 }
 
 impl Grid {
@@ -34,12 +35,24 @@ impl Grid {
             cells: vec![CellType::Empty; rows * cols],
             h_walls: vec![EdgeState::Passable; (rows + 1) * cols],
             v_walls: vec![EdgeState::Passable; rows * (cols + 1)],
+            active_biomass: std::collections::HashSet::new(),
         }
     }
 
     #[inline]
     pub fn is_valid_cell(&self, r: usize, c: usize) -> bool {
         r < self.rows && c < self.cols
+    }
+
+    pub fn valid_neighbors(&self, r: usize, c: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
+        [
+            (r.wrapping_sub(1), c),
+            (r + 1, c),
+            (r, c.wrapping_sub(1)),
+            (r, c + 1),
+        ]
+        .into_iter()
+        .filter(move |&(nr, nc)| self.is_valid_cell(nr, nc))
     }
 
     #[inline]
@@ -59,14 +72,17 @@ impl Grid {
         if self.is_valid_cell(r, c) {
             let idx = self.cell_idx(r, c);
             self.cells[idx] = cell_type;
+
+            if cell_type == CellType::Biomass {
+                self.active_biomass.insert((r, c));
+            } else {
+                self.active_biomass.remove(&(r, c));
+            }
         }
     }
 
     pub fn count_biomass(&self) -> usize {
-        self.cells
-            .iter()
-            .filter(|&&c| c == CellType::Biomass)
-            .count()
+        self.active_biomass.len()
     }
 
     pub fn get_edge(&self, edge: Edge) -> EdgeState {
@@ -110,11 +126,11 @@ impl Grid {
         }
 
         if r1 != r2 {
-            let min_r = r1.max(r2);
-            self.get_edge(Edge::Horizontal { r: min_r, c: c1 }) == EdgeState::Wall
+            let wall_r = r1.max(r2);
+            self.get_edge(Edge::Horizontal { r: wall_r, c: c1 }) == EdgeState::Wall
         } else {
-            let min_c = c1.max(c2);
-            self.get_edge(Edge::Vertical { r: r1, c: min_c }) == EdgeState::Wall
+            let wall_c = c1.max(c2);
+            self.get_edge(Edge::Vertical { r: r1, c: wall_c }) == EdgeState::Wall
         }
     }
 

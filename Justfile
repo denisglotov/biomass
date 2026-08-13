@@ -36,9 +36,13 @@ fmt:
 fmt-check:
     cargo fmt --check
 
+# Run tests
+test:
+    cargo test
+
 # Serve the WASM game locally on port 8080
 serve: build-wasm
     python3 -m http.server 8080
 
-# Run complete CI test suite (formatting, clippy, WASM build)
-ci: fmt-check clippy build-wasm
+# Run complete CI test suite (formatting, clippy, tests, WASM build)
+ci: fmt-check clippy test build-wasm

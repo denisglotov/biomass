@@ -11,14 +11,7 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
         return steps_history;
     }
 
-    let mut current_biomass: HashSet<(usize, usize)> = HashSet::new();
-    for r in 0..grid.rows {
-        for c in 0..grid.cols {
-            if grid.get_cell(r, c) == CellType::Biomass {
-                current_biomass.insert((r, c));
-            }
-        }
-    }
+    let mut current_biomass: HashSet<(usize, usize)> = grid.active_biomass.clone();
 
     let mut infected_this_turn: HashSet<(usize, usize)> = HashSet::new();
 
@@ -36,24 +29,15 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
         }
 
         for &(r, c) in &biomass_list {
-            let neighbors = [
-                (r.wrapping_sub(1), c),
-                (r + 1, c),
-                (r, c.wrapping_sub(1)),
-                (r, c + 1),
-            ];
-
-            let mut candidates = Vec::new();
-            for &(nr, nc) in &neighbors {
-                if grid.is_valid_cell(nr, nc)
-                    && grid.get_cell(nr, nc) == CellType::Empty
-                    && !current_biomass.contains(&(nr, nc))
-                    && !infected_this_turn.contains(&(nr, nc))
-                    && !grid.has_wall_between(r, c, nr, nc)
-                {
-                    candidates.push((nr, nc));
-                }
-            }
+            let candidates: Vec<_> = grid
+                .valid_neighbors(r, c)
+                .filter(|&(nr, nc)| {
+                    grid.get_cell(nr, nc) == CellType::Empty
+                        && !current_biomass.contains(&(nr, nc))
+                        && !infected_this_turn.contains(&(nr, nc))
+                        && !grid.has_wall_between(r, c, nr, nc)
+                })
+                .collect();
 
             if !candidates.is_empty() {
                 let idx = gen_range(0, candidates.len());
@@ -87,79 +71,192 @@ pub fn evaluate_sealed_enclosure_dieoff(grid: &Grid) -> Vec<(usize, usize)> {
     let mut visited = HashSet::new();
     let mut starved_cells = Vec::new();
 
-    for r in 0..grid.rows {
-        for c in 0..grid.cols {
-            if grid.get_cell(r, c) == CellType::Biomass && !visited.contains(&(r, c)) {
-                // Collect all cells in this biomass component
-                let mut component = Vec::new();
-                let mut queue = VecDeque::new();
+    for &(r, c) in &grid.active_biomass {
+        if !visited.contains(&(r, c)) {
+            let mut component = Vec::new();
+            let mut queue = VecDeque::new();
+            let mut has_access_to_empty = false;
 
-                queue.push_back((r, c));
-                visited.insert((r, c));
+            queue.push_back((r, c));
+            visited.insert((r, c));
 
-                while let Some((cr, cc)) = queue.pop_front() {
-                    component.push((cr, cc));
+            while let Some((cr, cc)) = queue.pop_front() {
+                component.push((cr, cc));
 
-                    let neighbors = [
-                        (cr.wrapping_sub(1), cc),
-                        (cr + 1, cc),
-                        (cr, cc.wrapping_sub(1)),
-                        (cr, cc + 1),
-                    ];
-
-                    for &(nr, nc) in &neighbors {
-                        if grid.is_valid_cell(nr, nc)
-                            && grid.get_cell(nr, nc) == CellType::Biomass
-                            && !visited.contains(&(nr, nc))
-                            && !grid.has_wall_between(cr, cc, nr, nc)
-                        {
-                            visited.insert((nr, nc));
-                            queue.push_back((nr, nc));
-                        }
+                for (nr, nc) in grid.valid_neighbors(cr, cc) {
+                    if grid.has_wall_between(cr, cc, nr, nc) {
+                        continue;
                     }
-                }
 
-                // Check if this biomass component has access to ANY empty cell
-                let mut has_access_to_empty = false;
-                let mut path_visited = HashSet::new();
-                let mut path_queue = VecDeque::new();
-
-                for &cell in &component {
-                    path_queue.push_back(cell);
-                    path_visited.insert(cell);
-                }
-
-                'search: while let Some((cr, cc)) = path_queue.pop_front() {
-                    let neighbors = [
-                        (cr.wrapping_sub(1), cc),
-                        (cr + 1, cc),
-                        (cr, cc.wrapping_sub(1)),
-                        (cr, cc + 1),
-                    ];
-
-                    for &(nr, nc) in &neighbors {
-                        if grid.is_valid_cell(nr, nc) && !grid.has_wall_between(cr, cc, nr, nc) {
-                            let cell_type = grid.get_cell(nr, nc);
-                            if cell_type == CellType::Empty {
-                                has_access_to_empty = true;
-                                break 'search;
-                            } else if cell_type == CellType::Biomass
-                                && !path_visited.contains(&(nr, nc))
-                            {
-                                path_visited.insert((nr, nc));
-                                path_queue.push_back((nr, nc));
+                    match grid.get_cell(nr, nc) {
+                        CellType::Empty => {
+                            has_access_to_empty = true;
+                        }
+                        CellType::Biomass => {
+                            if !visited.contains(&(nr, nc)) {
+                                visited.insert((nr, nc));
+                                queue.push_back((nr, nc));
                             }
                         }
+                        CellType::Obstacle => {}
                     }
                 }
+            }
 
-                // If no empty cell is reachable, all cells in this component starve!
-                if !has_access_to_empty {
-                    starved_cells.extend(component);
-                }
+            if !has_access_to_empty {
+                starved_cells.extend(component);
             }
         }
     }
 
     starved_cells
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::grid::{CellType, Edge, EdgeState, Grid};
+    use std::collections::HashSet;
+
+    #[test]
+    fn no_biomass_no_dieoff() {
+        let grid = Grid::new(3, 3);
+        assert!(evaluate_sealed_enclosure_dieoff(&grid).is_empty());
+    }
+
+    #[test]
+    fn unsealed_biomass_survives() {
+        // Single biomass cell surrounded by empty — should not die.
+        let mut grid = Grid::new(3, 3);
+        grid.set_cell(1, 1, CellType::Biomass);
+        assert!(evaluate_sealed_enclosure_dieoff(&grid).is_empty());
+    }
+
+    #[test]
+    fn fully_walled_biomass_dies() {
+        // Biomass at (1,1) in a 3x3 grid, walled off on all 4 sides.
+        //
+        //   +---+---+---+
+        //   |   |   |   |
+        //   +---+===+---+   <- horizontal wall at r=1, c=1
+        //   |   ‖ B ‖   |
+        //   +---+===+---+   <- horizontal wall at r=2, c=1
+        //   |   |   |   |
+        //   +---+---+---+
+        let mut grid = Grid::new(3, 3);
+        grid.set_cell(1, 1, CellType::Biomass);
+        grid.set_edge(Edge::Horizontal { r: 1, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Horizontal { r: 2, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Vertical { r: 1, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Vertical { r: 1, c: 2 }, EdgeState::Wall);
+
+        assert_eq!(evaluate_sealed_enclosure_dieoff(&grid), vec![(1, 1)]);
+    }
+
+    #[test]
+    fn walled_box_with_gap_survives() {
+        // Same as above but leave one wall open — biomass can reach empty.
+        let mut grid = Grid::new(3, 3);
+        grid.set_cell(1, 1, CellType::Biomass);
+        grid.set_edge(Edge::Horizontal { r: 1, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Horizontal { r: 2, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Vertical { r: 1, c: 1 }, EdgeState::Wall);
+        // Vertical r=1, c=2 left open
+
+        assert!(evaluate_sealed_enclosure_dieoff(&grid).is_empty());
+    }
+
+    #[test]
+    fn obstacle_assisted_seal() {
+        // Biomass at (0,0) in a 2x2 grid, obstacle at (0,1) and (1,0).
+        // Walls between (0,0)-(1,1) aren't needed since they aren't adjacent.
+        // The only non-obstacle neighbor is (1,1) diagonally — not reachable.
+        // Outer boundary edges are already impassable (grid boundary).
+        // Obstacle neighbors block expansion, so biomass is sealed.
+        let mut grid = Grid::new(2, 2);
+        grid.set_cell(0, 0, CellType::Biomass);
+        grid.set_cell(0, 1, CellType::Obstacle);
+        grid.set_cell(1, 0, CellType::Obstacle);
+        // (1,1) is empty but not adjacent to (0,0)
+
+        assert_eq!(evaluate_sealed_enclosure_dieoff(&grid), vec![(0, 0)]);
+    }
+
+    #[test]
+    fn two_components_one_sealed() {
+        // 1x4 grid: [Biomass | Wall | Biomass | Empty]
+        // Left biomass is walled off, right biomass has access to empty.
+        let mut grid = Grid::new(1, 4);
+        grid.set_cell(0, 0, CellType::Biomass);
+        grid.set_cell(0, 2, CellType::Biomass);
+        // Wall between (0,0) and (0,1)
+        grid.set_edge(Edge::Vertical { r: 0, c: 1 }, EdgeState::Wall);
+        // (0,1) is empty but walled off from (0,0)
+        // (0,3) is empty and reachable from (0,2)
+
+        let result = evaluate_sealed_enclosure_dieoff(&grid);
+        assert_eq!(result, vec![(0, 0)]);
+    }
+
+    #[test]
+    fn connected_component_partially_borders_empty() {
+        // 1x3 grid: [Biomass, Biomass, Empty] — no walls.
+        // Both biomass cells form one component with access to empty.
+        let mut grid = Grid::new(1, 3);
+        grid.set_cell(0, 0, CellType::Biomass);
+        grid.set_cell(0, 1, CellType::Biomass);
+
+        assert!(evaluate_sealed_enclosure_dieoff(&grid).is_empty());
+    }
+
+    #[test]
+    fn biomass_fills_entire_grid() {
+        // All cells are biomass — no empty cells reachable, all die.
+        let mut grid = Grid::new(2, 2);
+        grid.set_cell(0, 0, CellType::Biomass);
+        grid.set_cell(0, 1, CellType::Biomass);
+        grid.set_cell(1, 0, CellType::Biomass);
+        grid.set_cell(1, 1, CellType::Biomass);
+
+        let result: HashSet<_> = evaluate_sealed_enclosure_dieoff(&grid)
+            .into_iter()
+            .collect();
+        let expected: HashSet<_> = [(0, 0), (0, 1), (1, 0), (1, 1)].into_iter().collect();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn sealed_multi_cell_component_dies() {
+        // 3x3 grid, 2x2 biomass block at center-ish, fully walled off.
+        //   +---+---+---+
+        //   |   |   |   |
+        //   +---+===+===+
+        //   |   ‖ B | B ‖
+        //   +---+---+---+
+        //   |   ‖ B | B ‖
+        //   +---+===+===+
+        let mut grid = Grid::new(3, 3);
+        grid.set_cell(1, 1, CellType::Biomass);
+        grid.set_cell(1, 2, CellType::Biomass);
+        grid.set_cell(2, 1, CellType::Biomass);
+        grid.set_cell(2, 2, CellType::Biomass);
+        // Top wall
+        grid.set_edge(Edge::Horizontal { r: 1, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Horizontal { r: 1, c: 2 }, EdgeState::Wall);
+        // Bottom wall (r=3 is the boundary below row 2)
+        grid.set_edge(Edge::Horizontal { r: 3, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Horizontal { r: 3, c: 2 }, EdgeState::Wall);
+        // Left wall
+        grid.set_edge(Edge::Vertical { r: 1, c: 1 }, EdgeState::Wall);
+        grid.set_edge(Edge::Vertical { r: 2, c: 1 }, EdgeState::Wall);
+        // Right wall (c=3 is the boundary right of col 2)
+        grid.set_edge(Edge::Vertical { r: 1, c: 3 }, EdgeState::Wall);
+        grid.set_edge(Edge::Vertical { r: 2, c: 3 }, EdgeState::Wall);
+
+        let result: HashSet<_> = evaluate_sealed_enclosure_dieoff(&grid)
+            .into_iter()
+            .collect();
+        let expected: HashSet<_> = [(1, 1), (1, 2), (2, 1), (2, 2)].into_iter().collect();
+        assert_eq!(result, expected);
+    }
 }

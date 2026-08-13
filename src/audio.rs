@@ -49,53 +49,22 @@ mod native_backend {
 
     impl SoundBackend {
         pub async fn new() -> Self {
-            let snd_wall = generate_wav_sound(44100, 0.08, |t| {
-                let freq = 1200.0 - t * 8000.0;
-                (t * freq * 2.0 * std::f32::consts::PI).sin() * (1.0 - t / 0.08)
-            })
-            .await;
-
-            let snd_tick = generate_wav_sound(44100, 0.12, |t| {
-                let freq = 220.0 + (t * 1500.0).sin() * 50.0;
-                (t * freq * 2.0 * std::f32::consts::PI).sin() * (1.0 - t / 0.12)
-            })
-            .await;
-
-            let snd_pop = generate_wav_sound(44100, 0.18, |t| {
-                let freq = 400.0 - t * 1800.0;
-                (t * freq * 2.0 * std::f32::consts::PI).sin() * (1.0 - t / 0.18)
-            })
-            .await;
-
-            let snd_win = generate_wav_sound(44100, 0.45, |t| {
-                let note = if t < 0.15 {
-                    523.25
-                } else if t < 0.30 {
-                    659.25
-                } else {
-                    783.99
-                };
-                (t * note * 2.0 * std::f32::consts::PI).sin() * (1.0 - t / 0.45)
-            })
-            .await;
-
-            let snd_loss = generate_wav_sound(44100, 0.40, |t| {
-                let freq = 350.0 - t * 600.0;
-                let square = if (t * freq * 2.0 * std::f32::consts::PI).sin() > 0.0 {
-                    0.5
-                } else {
-                    -0.5
-                };
-                square * (1.0 - t / 0.40)
-            })
-            .await;
-
             Self {
-                snd_wall,
-                snd_tick,
-                snd_pop,
-                snd_win,
-                snd_loss,
+                snd_wall: load_sound_from_bytes(include_bytes!("../assets/wall.wav"))
+                    .await
+                    .ok(),
+                snd_tick: load_sound_from_bytes(include_bytes!("../assets/tick.wav"))
+                    .await
+                    .ok(),
+                snd_pop: load_sound_from_bytes(include_bytes!("../assets/pop.wav"))
+                    .await
+                    .ok(),
+                snd_win: load_sound_from_bytes(include_bytes!("../assets/win.wav"))
+                    .await
+                    .ok(),
+                snd_loss: load_sound_from_bytes(include_bytes!("../assets/loss.wav"))
+                    .await
+                    .ok(),
             }
         }
 
@@ -112,43 +81,6 @@ mod native_backend {
                 play_sound_once(snd);
             }
         }
-    }
-
-    async fn generate_wav_sound<F>(sample_rate: u32, duration_secs: f32, synth: F) -> Option<Sound>
-    where
-        F: Fn(f32) -> f32,
-    {
-        let num_samples = (sample_rate as f32 * duration_secs) as usize;
-        let data_len = num_samples * 2;
-        let total_len = 44 + data_len;
-
-        let mut bytes = Vec::with_capacity(total_len);
-
-        bytes.extend_from_slice(b"RIFF");
-        bytes.extend_from_slice(&((total_len - 8) as u32).to_le_bytes());
-        bytes.extend_from_slice(b"WAVE");
-
-        bytes.extend_from_slice(b"fmt ");
-        bytes.extend_from_slice(&16u32.to_le_bytes());
-        bytes.extend_from_slice(&1u16.to_le_bytes());
-        bytes.extend_from_slice(&1u16.to_le_bytes());
-        bytes.extend_from_slice(&sample_rate.to_le_bytes());
-        let byte_rate = sample_rate * 2;
-        bytes.extend_from_slice(&byte_rate.to_le_bytes());
-        bytes.extend_from_slice(&2u16.to_le_bytes());
-        bytes.extend_from_slice(&16u16.to_le_bytes());
-
-        bytes.extend_from_slice(b"data");
-        bytes.extend_from_slice(&(data_len as u32).to_le_bytes());
-
-        for i in 0..num_samples {
-            let t = i as f32 / sample_rate as f32;
-            let sample = synth(t).clamp(-1.0, 1.0);
-            let pcm_16 = (sample * 32767.0) as i16;
-            bytes.extend_from_slice(&pcm_16.to_le_bytes());
-        }
-
-        load_sound_from_bytes(&bytes).await.ok()
     }
 }
 

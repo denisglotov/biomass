@@ -24,6 +24,15 @@ fn get_save_file_paths() -> Vec<std::path::PathBuf> {
     paths
 }
 
+#[cfg(target_arch = "wasm32")]
+#[link(wasm_import_module = "env")]
+extern "C" {
+    /// Store a value to localStorage. Returns 1 on success, 0 on failure.
+    fn storage_save(value: i32) -> i32;
+    /// Load a value from localStorage. Returns -1 if not found or on error.
+    fn storage_load() -> i32;
+}
+
 pub fn save_last_level_reached(level_idx: usize) {
     let current_highest = load_last_level_reached();
     let highest = level_idx.max(current_highest);
@@ -38,7 +47,9 @@ pub fn save_last_level_reached(level_idx: usize) {
     }
 
     #[cfg(target_arch = "wasm32")]
-    let _ = highest;
+    unsafe {
+        storage_save(highest as i32);
+    }
 }
 
 pub fn load_last_level_reached() -> usize {
@@ -55,5 +66,12 @@ pub fn load_last_level_reached() -> usize {
     }
 
     #[cfg(target_arch = "wasm32")]
-    0
+    {
+        let val = unsafe { storage_load() };
+        if val >= 0 {
+            val as usize
+        } else {
+            0
+        }
+    }
 }

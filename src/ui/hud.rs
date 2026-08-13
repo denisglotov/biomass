@@ -2,27 +2,7 @@ use crate::game::grid::{CellType, Edge, EdgeState};
 use crate::game::state::{GamePhase, GameState, SoundTrigger};
 use macroquad::prelude::*;
 
-#[derive(Debug, Clone)]
-pub struct Particle {
-    pub x: f32,
-    pub y: f32,
-    pub vx: f32,
-    pub vy: f32,
-    pub radius: f32,
-    pub color: Color,
-    pub life: f32,
-    pub max_life: f32,
-}
-
-#[derive(Debug, Clone)]
-pub struct Shockwave {
-    pub cx: f32,
-    pub cy: f32,
-    pub radius: f32,
-    pub max_radius: f32,
-    pub color: Color,
-    pub alpha: f32,
-}
+use super::fx::{Particle, Shockwave};
 
 pub struct Hud {
     pub font: Option<Font>,
@@ -1204,7 +1184,7 @@ impl Hud {
         let btn_y = card_y + card_h - 52.0 * scale;
 
         let mouse_pos = mouse_position();
-        let clicked = is_mouse_button_pressed(MouseButton::Left);
+        let clicked = is_mouse_button_released(MouseButton::Left);
 
         let retry_rect = Rect::new(card_x + 20.0 * scale, btn_y, btn_w, btn_h);
         self.draw_button("↺ Retry Level", retry_rect, mouse_pos, 15.0 * scale);
