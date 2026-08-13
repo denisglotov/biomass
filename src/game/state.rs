@@ -6,7 +6,7 @@ use super::storage::{load_last_level_reached, save_last_level_reached};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GamePhase {
     PlayerTurn,
-    BiomassExpansionAnim,
+    BiomassExpansion,
     IsolationCheck,
     Victory,
     Defeat,
@@ -37,15 +37,14 @@ pub struct GameState {
 impl GameState {
     pub fn new() -> Self {
         let levels = get_levels();
-        let saved_level_idx = load_last_level_reached().min(levels.len().saturating_sub(1));
-        let current_level_idx = saved_level_idx;
-        let level = levels[current_level_idx].clone();
+        let level_idx = load_last_level_reached().min(levels.len().saturating_sub(1));
+        let level = levels[level_idx].clone();
         let grid = level.create_initial_grid();
         let walls_left = level.walls_per_turn;
 
         Self {
             levels,
-            current_level_idx,
+            current_level_idx: level_idx,
             level,
             grid,
             turn_number: 1,
@@ -64,25 +63,29 @@ impl GameState {
 
     pub fn load_level(&mut self, level_idx: usize) {
         if level_idx < self.levels.len() {
-            self.current_level_idx = level_idx;
             save_last_level_reached(level_idx);
-            self.level = self.levels[level_idx].clone();
-            self.grid = self.level.create_initial_grid();
-            self.turn_number = 1;
-            self.walls_left = self.level.walls_per_turn;
-            self.phase = GamePhase::PlayerTurn;
-            self.placed_walls_this_turn.clear();
-            self.expansion_steps.clear();
-            self.current_anim_step = 0;
-            self.dying_biomass.clear();
-            self.newly_infected_this_step.clear();
-            self.newly_starved_this_step.clear();
-            self.anim_timer = 0.0;
+            self.init_level(level_idx);
         }
     }
 
     pub fn reset_level(&mut self) {
-        self.load_level(self.current_level_idx);
+        self.init_level(self.current_level_idx);
+    }
+
+    fn init_level(&mut self, level_idx: usize) {
+        self.current_level_idx = level_idx;
+        self.level = self.levels[level_idx].clone();
+        self.grid = self.level.create_initial_grid();
+        self.turn_number = 1;
+        self.walls_left = self.level.walls_per_turn;
+        self.phase = GamePhase::PlayerTurn;
+        self.placed_walls_this_turn.clear();
+        self.expansion_steps.clear();
+        self.current_anim_step = 0;
+        self.dying_biomass.clear();
+        self.newly_infected_this_step.clear();
+        self.newly_starved_this_step.clear();
+        self.anim_timer = 0.0;
     }
 
     pub fn try_place_wall(&mut self, edge: Edge) -> bool {
@@ -134,7 +137,7 @@ impl GameState {
             self.apply_all_expansion();
             self.start_isolation_phase();
         } else {
-            self.phase = GamePhase::BiomassExpansionAnim;
+            self.phase = GamePhase::BiomassExpansion;
         }
     }
 
@@ -151,7 +154,7 @@ impl GameState {
         let mut sound_trigger = None;
 
         match self.phase {
-            GamePhase::BiomassExpansionAnim => {
+            GamePhase::BiomassExpansion => {
                 let step_duration = 0.35;
                 self.anim_timer += dt;
 
@@ -187,9 +190,10 @@ impl GameState {
 
                 if biomass_count == 0 {
                     self.phase = GamePhase::Victory;
-                    self.star_rating = if self.turn_number <= 3 {
+                    let (three_star, two_star) = self.level.star_thresholds;
+                    self.star_rating = if self.turn_number <= three_star {
                         3
-                    } else if self.turn_number <= 6 {
+                    } else if self.turn_number <= two_star {
                         2
                     } else {
                         1

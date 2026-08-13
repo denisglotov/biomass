@@ -12,6 +12,8 @@ pub struct Level {
     pub initial_biomass: Vec<(usize, usize)>,
     pub obstacles: Vec<(usize, usize)>,
     pub initial_walls: Vec<Edge>,
+    /// (3-star max turns, 2-star max turns); above 2-star threshold gives 1 star
+    pub star_thresholds: (usize, usize),
 }
 
 impl Level {
@@ -47,6 +49,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(2, 2)],
             obstacles: vec![],
             initial_walls: vec![],
+            star_thresholds: (3, 5),
         },
         Level {
             title: "Level 2: Twin Spores".to_string(),
@@ -60,6 +63,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(1, 1), (4, 4)],
             obstacles: vec![],
             initial_walls: vec![],
+            star_thresholds: (3, 6),
         },
         Level {
             title: "Level 3: Pillar Defense".to_string(),
@@ -73,6 +77,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(2, 2)],
             obstacles: vec![(1, 1), (1, 4), (4, 1), (4, 4)],
             initial_walls: vec![],
+            star_thresholds: (3, 6),
         },
         Level {
             title: "Level 4: Divided Sectors".to_string(),
@@ -90,6 +95,7 @@ pub fn get_levels() -> Vec<Level> {
                 Edge::Horizontal { r: 3, c: 3 },
                 Edge::Horizontal { r: 3, c: 4 },
             ],
+            star_thresholds: (4, 7),
         },
         Level {
             title: "Level 5: Rapid Mutation".to_string(),
@@ -103,6 +109,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(3, 3)],
             obstacles: vec![(2, 2), (4, 4)],
             initial_walls: vec![],
+            star_thresholds: (4, 7),
         },
         Level {
             title: "Level 6: Central Rock Fortress".to_string(),
@@ -116,6 +123,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(1, 2), (6, 5)],
             obstacles: vec![(3, 3), (3, 4), (4, 3), (4, 4)],
             initial_walls: vec![],
+            star_thresholds: (5, 8),
         },
         Level {
             title: "Level 7: Corridor Siege".to_string(),
@@ -138,6 +146,7 @@ pub fn get_levels() -> Vec<Level> {
                 (4, 7),
             ],
             initial_walls: vec![],
+            star_thresholds: (5, 8),
         },
         Level {
             title: "Level 8: Outbreak Zero".to_string(),
@@ -150,6 +159,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(1, 4), (7, 1), (7, 7)],
             obstacles: vec![(4, 4)],
             initial_walls: vec![],
+            star_thresholds: (5, 9),
         },
         Level {
             title: "Level 9: Bio-Lab Hazard".to_string(),
@@ -163,6 +173,7 @@ pub fn get_levels() -> Vec<Level> {
             initial_biomass: vec![(2, 2), (6, 6)],
             obstacles: vec![(2, 4), (4, 2), (4, 6), (6, 4), (1, 1), (7, 7)],
             initial_walls: vec![],
+            star_thresholds: (6, 9),
         },
         Level {
             title: "Level 10: Bio-Reactor Meltdown".to_string(),
@@ -186,6 +197,7 @@ pub fn get_levels() -> Vec<Level> {
                 (8, 5),
             ],
             initial_walls: vec![],
+            star_thresholds: (6, 10),
         },
     ]
 }

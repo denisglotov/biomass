@@ -110,11 +110,11 @@ impl Grid {
         }
 
         if r1 != r2 {
-            let min_r = r1.max(r2);
-            self.get_edge(Edge::Horizontal { r: min_r, c: c1 }) == EdgeState::Wall
+            let wall_r = r1.max(r2);
+            self.get_edge(Edge::Horizontal { r: wall_r, c: c1 }) == EdgeState::Wall
         } else {
-            let min_c = c1.max(c2);
-            self.get_edge(Edge::Vertical { r: r1, c: min_c }) == EdgeState::Wall
+            let wall_c = c1.max(c2);
+            self.get_edge(Edge::Vertical { r: r1, c: wall_c }) == EdgeState::Wall
         }
     }
 
