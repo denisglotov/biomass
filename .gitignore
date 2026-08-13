@@ -1,6 +1,7 @@
 # Rust build artifacts
 /target/
 **/*.rs.bk
+/scratch/
 
 # WebAssembly build outputs
 biomass.wasm
