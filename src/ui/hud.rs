@@ -133,9 +133,9 @@ impl Hud {
             42.0 * scale
         };
         let banner_h = if is_portrait {
-            38.0 * scale
+            48.0 * scale
         } else {
-            32.0 * scale
+            42.0 * scale
         };
         let grid_bottom_margin = 20.0 * scale;
 
@@ -157,6 +157,9 @@ impl Hud {
         self.draw_level_banner(state, screen_w, level_banner_y, scale);
 
         // 5. Draw Grid & Interactive Workspace (fill all remaining screen space)
+        #[cfg(not(target_arch = "wasm32"))]
+        let grid_top = level_banner_y + banner_h + 6.0 * scale;
+        #[cfg(target_arch = "wasm32")]
         let grid_top = level_banner_y + banner_h;
         let side_margin = 12.0 * scale;
         let viewport_w = (screen_w - side_margin * 2.0).max(200.0);
@@ -338,7 +341,7 @@ impl Hud {
 
     fn draw_level_banner(&self, state: &GameState, screen_w: f32, y: f32, scale: f32) {
         let text = format!("☣ {} — {}", state.level.title, state.level.description);
-        let mut font_size = 16.0 * scale;
+        let mut font_size = 22.0 * scale;
         let mut dimensions = self.measure_text_str(&text, font_size);
 
         // Dynamically shrink font size if text is too wide for screen
@@ -349,23 +352,14 @@ impl Hud {
             dimensions = self.measure_text_str(&text, font_size);
         }
 
-        let box_h = 32.0 * scale;
-        let box_w = (dimensions.width + 24.0 * scale).min(screen_w - 20.0 * scale);
+        let box_h = 42.0 * scale;
+        let box_w = (dimensions.width + 32.0 * scale).min(screen_w - 20.0 * scale);
         let box_x = (screen_w - box_w) / 2.0;
-        draw_rectangle(box_x, y, box_w, box_h, Color::from_rgba(30, 41, 59, 255));
-        draw_rectangle_lines(
-            box_x,
-            y,
-            box_w,
-            box_h,
-            1.5 * scale,
-            Color::from_rgba(0, 229, 255, 180),
-        );
 
         let draw_x = (screen_w - dimensions.width) / 2.0;
         self.draw_text_str(
             &text,
-            draw_x.max(box_x + 6.0),
+            draw_x.max(box_x + 8.0),
             y + box_h * 0.68,
             font_size,
             Color::from_rgba(255, 255, 255, 255),
