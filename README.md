@@ -153,3 +153,12 @@ adb -s <device-serial> logcat -s biomass
 
 The Android package name, version, and target API are configured in [`Cargo.toml`](Cargo.toml)
 under the `[package.metadata.android]` section.
+
+---
+
+## 🎨 Credits & Audio Assets
+
+- **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* &
+  *Digital Audio* packs), licensed under [Creative Commons CC0 1.0
+  Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with custom DSP
+  synthesized audio.
