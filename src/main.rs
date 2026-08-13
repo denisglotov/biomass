@@ -41,6 +41,35 @@ async fn main() {
             sound_manager.play(snd);
         }
 
+        // 3. Render World (Board, Hexes, Biomass, Effects)
         next_frame().await;
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod wasm_plugin_exports {
+    #[no_mangle]
+    pub extern "C" fn biomass_audio_crate_version() -> u32 {
+        1
+    }
+
+    #[no_mangle]
+    pub extern "C" fn biomass_storage_crate_version() -> u32 {
+        1
+    }
+
+    #[no_mangle]
+    pub extern "C" fn macroquad_audio_crate_version() -> u32 {
+        1
+    }
+
+    #[no_mangle]
+    pub extern "C" fn sapp_jsutils_crate_version() -> u32 {
+        1
+    }
+
+    #[no_mangle]
+    pub extern "C" fn quad_net_crate_version() -> u32 {
+        1
     }
 }
