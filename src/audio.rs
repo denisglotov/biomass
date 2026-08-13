@@ -50,11 +50,21 @@ mod native_backend {
     impl SoundBackend {
         pub async fn new() -> Self {
             Self {
-                snd_wall: load_sound_from_bytes(include_bytes!("../assets/wall.wav")).await.ok(),
-                snd_tick: load_sound_from_bytes(include_bytes!("../assets/tick.wav")).await.ok(),
-                snd_pop: load_sound_from_bytes(include_bytes!("../assets/pop.wav")).await.ok(),
-                snd_win: load_sound_from_bytes(include_bytes!("../assets/win.wav")).await.ok(),
-                snd_loss: load_sound_from_bytes(include_bytes!("../assets/loss.wav")).await.ok(),
+                snd_wall: load_sound_from_bytes(include_bytes!("../assets/wall.wav"))
+                    .await
+                    .ok(),
+                snd_tick: load_sound_from_bytes(include_bytes!("../assets/tick.wav"))
+                    .await
+                    .ok(),
+                snd_pop: load_sound_from_bytes(include_bytes!("../assets/pop.wav"))
+                    .await
+                    .ok(),
+                snd_win: load_sound_from_bytes(include_bytes!("../assets/win.wav"))
+                    .await
+                    .ok(),
+                snd_loss: load_sound_from_bytes(include_bytes!("../assets/loss.wav"))
+                    .await
+                    .ok(),
             }
         }
 
