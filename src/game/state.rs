@@ -233,4 +233,6 @@ pub enum SoundTrigger {
     IsolationPop,
     WinFanfare,
     LossAlert,
+    ButtonClick,
+    InvalidMove,
 }

@@ -805,6 +805,8 @@ impl Hud {
                         cell_size * 0.9,
                     );
                     self.spawn_burst(wx, wy, Color::from_rgba(0, 229, 255, 255), 16);
+                } else {
+                    sound_trigger = Some(SoundTrigger::InvalidMove);
                 }
             }
         }
@@ -1190,7 +1192,7 @@ impl Hud {
         self.draw_button("↺ Retry Level", retry_rect, mouse_pos, 15.0 * scale);
         if clicked && retry_rect.contains(mouse_pos.into()) {
             state.reset_level();
-            sound_trigger = Some(SoundTrigger::WallPlace);
+            sound_trigger = Some(SoundTrigger::ButtonClick);
         }
 
         let next_rect = Rect::new(card_x + card_w - btn_w - 20.0 * scale, btn_y, btn_w, btn_h);
@@ -1202,7 +1204,7 @@ impl Hud {
                 } else {
                     state.reset_level();
                 }
-                sound_trigger = Some(SoundTrigger::WallPlace);
+                sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         } else {
             self.draw_button("⏭ Skip Level", next_rect, mouse_pos, 15.0 * scale);
@@ -1212,7 +1214,7 @@ impl Hud {
                 } else {
                     state.reset_level();
                 }
-                sound_trigger = Some(SoundTrigger::WallPlace);
+                sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         }
 
