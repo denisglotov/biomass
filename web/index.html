@@ -119,7 +119,6 @@
       );
 
       window.biomassPlaySound = function (type) {
-        console.log("biomassPlaySound called from WASM! Type:", type);
         let ctx = getBiomassAudioCtx();
         if (!ctx) return;
 
@@ -153,15 +152,8 @@
       const script = document.createElement("script");
       script.src = "mq_js_bundle.js?t=" + Date.now();
       script.onload = function () {
-        console.log(
-          "mq_js_bundle.js loaded, registering biomass_audio plugin...",
-        );
         miniquad_add_plugin({
           register_plugin: function (env_obj) {
-            console.log(
-              "Registering biomass_audio plugin functions onto env_obj!",
-              env_obj,
-            );
             env_obj.env.play_sound_wall = function () {
               if (window.biomassPlaySound) window.biomassPlaySound("wall");
             };
