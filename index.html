@@ -56,7 +56,7 @@
       const audioBuffers = {};
 
       (function preloadBytes() {
-        const files = ["wall", "tick", "pop", "win", "loss"];
+        const files = ["wall", "tick", "pop", "win", "loss", "click", "error"];
         for (const file of files) {
           fetch(`assets/${file}.wav`)
             .then((r) => r.arrayBuffer())
@@ -176,6 +176,12 @@
             };
             env_obj.env.play_sound_loss = function () {
               if (window.biomassPlaySound) window.biomassPlaySound("loss");
+            };
+            env_obj.env.play_sound_click = function () {
+              if (window.biomassPlaySound) window.biomassPlaySound("click");
+            };
+            env_obj.env.play_sound_error = function () {
+              if (window.biomassPlaySound) window.biomassPlaySound("error");
             };
           },
           version: 1,
