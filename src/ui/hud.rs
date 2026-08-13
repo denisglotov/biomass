@@ -294,7 +294,7 @@ impl Hud {
         // Max Capacity
         let max_text = state.level.max_threshold.to_string();
         self.draw_stat_item(
-            "⚠️ MAX",
+            "⚠ MAX",
             &max_text,
             item_w * 3.0,
             y,
