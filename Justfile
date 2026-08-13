@@ -11,10 +11,11 @@ build:
 run:
     cargo run
 
-# Build release WebAssembly target and copy WASM binary to workspace root
+# Build release WebAssembly target and copy WASM binary to web directory
 build-wasm:
     cargo build --target wasm32-unknown-unknown --release
-    cp target/wasm32-unknown-unknown/release/biomass.wasm ./biomass.wasm
+    cp target/wasm32-unknown-unknown/release/biomass.wasm web/biomass.wasm
+    @test -L web/assets || ln -s ../assets web/assets
 
 # Build android image
 build-android:
@@ -42,7 +43,7 @@ test:
 
 # Serve the WASM game locally on port 8080
 serve: build-wasm
-    python3 -m http.server 8080
+    python3 -m http.server 8080 -d web
 
 # Run complete CI test suite (formatting, clippy, tests, WASM build)
 ci: fmt-check clippy test build-wasm

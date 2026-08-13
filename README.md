@@ -1,4 +1,4 @@
-# Biomass - Sci-Fi Turn-Based Containment Strategy Game (Rust + WebAssembly)
+# Biomass - Sci-Fi Turn-Based Containment Strategy Game
 
 **Biomass** is a tactical turn-based strategy puzzle game built entirely in **Rust** using **Macroquad** and compiled to **WebAssembly** (`wasm32-unknown-unknown`).
 
