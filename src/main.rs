@@ -24,7 +24,7 @@ fn window_conf() -> Conf {
 async fn main() {
     let sound_manager = SoundManager::new().await;
     let mut state = GameState::new();
-    let mut hud = Hud::new();
+    let mut hud = Hud::new().await;
 
     loop {
         let dt = get_frame_time();

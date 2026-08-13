@@ -18,9 +18,8 @@ pub struct Hud {
 }
 
 impl Hud {
-    pub fn new() -> Self {
-        let font_bytes = include_bytes!("../../assets/fonts/Symbola.ttf");
-        let font = load_ttf_font_from_bytes(font_bytes).ok();
+    pub async fn new() -> Self {
+        let font = load_ttf_font("assets/fonts/Symbola.ttf").await.ok();
 
         Self {
             font,
