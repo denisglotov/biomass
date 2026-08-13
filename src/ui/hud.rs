@@ -2,27 +2,7 @@ use crate::game::grid::{CellType, Edge, EdgeState};
 use crate::game::state::{GamePhase, GameState, SoundTrigger};
 use macroquad::prelude::*;
 
-#[derive(Debug, Clone)]
-pub struct Particle {
-    pub x: f32,
-    pub y: f32,
-    pub vx: f32,
-    pub vy: f32,
-    pub radius: f32,
-    pub color: Color,
-    pub life: f32,
-    pub max_life: f32,
-}
-
-#[derive(Debug, Clone)]
-pub struct Shockwave {
-    pub cx: f32,
-    pub cy: f32,
-    pub radius: f32,
-    pub max_radius: f32,
-    pub color: Color,
-    pub alpha: f32,
-}
+use super::fx::{Particle, Shockwave};
 
 pub struct Hud {
     pub font: Option<Font>,

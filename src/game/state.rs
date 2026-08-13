@@ -86,6 +86,7 @@ impl GameState {
         self.newly_infected_this_step.clear();
         self.newly_starved_this_step.clear();
         self.anim_timer = 0.0;
+        self.star_rating = 3;
     }
 
     pub fn try_place_wall(&mut self, edge: Edge) -> bool {
@@ -212,7 +213,7 @@ impl GameState {
                     self.phase = GamePhase::PlayerTurn;
                 }
             }
-            _ => {}
+            GamePhase::PlayerTurn | GamePhase::Victory | GamePhase::Defeat => {}
         }
 
         sound_trigger

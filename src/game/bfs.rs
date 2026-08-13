@@ -11,14 +11,7 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
         return steps_history;
     }
 
-    let mut current_biomass: HashSet<(usize, usize)> = HashSet::new();
-    for r in 0..grid.rows {
-        for c in 0..grid.cols {
-            if grid.get_cell(r, c) == CellType::Biomass {
-                current_biomass.insert((r, c));
-            }
-        }
-    }
+    let mut current_biomass: HashSet<(usize, usize)> = grid.active_biomass.clone();
 
     let mut infected_this_turn: HashSet<(usize, usize)> = HashSet::new();
 
@@ -36,24 +29,15 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
         }
 
         for &(r, c) in &biomass_list {
-            let neighbors = [
-                (r.wrapping_sub(1), c),
-                (r + 1, c),
-                (r, c.wrapping_sub(1)),
-                (r, c + 1),
-            ];
-
-            let mut candidates = Vec::new();
-            for &(nr, nc) in &neighbors {
-                if grid.is_valid_cell(nr, nc)
-                    && grid.get_cell(nr, nc) == CellType::Empty
-                    && !current_biomass.contains(&(nr, nc))
-                    && !infected_this_turn.contains(&(nr, nc))
-                    && !grid.has_wall_between(r, c, nr, nc)
-                {
-                    candidates.push((nr, nc));
-                }
-            }
+            let candidates: Vec<_> = grid
+                .valid_neighbors(r, c)
+                .filter(|&(nr, nc)| {
+                    grid.get_cell(nr, nc) == CellType::Empty
+                        && !current_biomass.contains(&(nr, nc))
+                        && !infected_this_turn.contains(&(nr, nc))
+                        && !grid.has_wall_between(r, c, nr, nc)
+                })
+                .collect();
 
             if !candidates.is_empty() {
                 let idx = gen_range(0, candidates.len());
@@ -87,49 +71,40 @@ pub fn evaluate_sealed_enclosure_dieoff(grid: &Grid) -> Vec<(usize, usize)> {
     let mut visited = HashSet::new();
     let mut starved_cells = Vec::new();
 
-    for r in 0..grid.rows {
-        for c in 0..grid.cols {
-            if grid.get_cell(r, c) == CellType::Biomass && !visited.contains(&(r, c)) {
-                let mut component = Vec::new();
-                let mut queue = VecDeque::new();
-                let mut has_access_to_empty = false;
+    for &(r, c) in &grid.active_biomass {
+        if !visited.contains(&(r, c)) {
+            let mut component = Vec::new();
+            let mut queue = VecDeque::new();
+            let mut has_access_to_empty = false;
 
-                queue.push_back((r, c));
-                visited.insert((r, c));
+            queue.push_back((r, c));
+            visited.insert((r, c));
 
-                while let Some((cr, cc)) = queue.pop_front() {
-                    component.push((cr, cc));
+            while let Some((cr, cc)) = queue.pop_front() {
+                component.push((cr, cc));
 
-                    let neighbors = [
-                        (cr.wrapping_sub(1), cc),
-                        (cr + 1, cc),
-                        (cr, cc.wrapping_sub(1)),
-                        (cr, cc + 1),
-                    ];
+                for (nr, nc) in grid.valid_neighbors(cr, cc) {
+                    if grid.has_wall_between(cr, cc, nr, nc) {
+                        continue;
+                    }
 
-                    for &(nr, nc) in &neighbors {
-                        if !grid.is_valid_cell(nr, nc) || grid.has_wall_between(cr, cc, nr, nc) {
-                            continue;
+                    match grid.get_cell(nr, nc) {
+                        CellType::Empty => {
+                            has_access_to_empty = true;
                         }
-
-                        match grid.get_cell(nr, nc) {
-                            CellType::Empty => {
-                                has_access_to_empty = true;
+                        CellType::Biomass => {
+                            if !visited.contains(&(nr, nc)) {
+                                visited.insert((nr, nc));
+                                queue.push_back((nr, nc));
                             }
-                            CellType::Biomass => {
-                                if !visited.contains(&(nr, nc)) {
-                                    visited.insert((nr, nc));
-                                    queue.push_back((nr, nc));
-                                }
-                            }
-                            CellType::Obstacle => {}
                         }
+                        CellType::Obstacle => {}
                     }
                 }
+            }
 
-                if !has_access_to_empty {
-                    starved_cells.extend(component);
-                }
+            if !has_access_to_empty {
+                starved_cells.extend(component);
             }
         }
     }
