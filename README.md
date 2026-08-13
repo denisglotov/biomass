@@ -79,7 +79,10 @@ just ci
 ```
 
 ### Continuous Integration (GitHub Actions)
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and WebAssembly compilation.
+
+Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and
+`pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and
+WebAssembly compilation.
 
 ---
 
@@ -158,7 +161,10 @@ under the `[package.metadata.android]` section.
 
 ## 🎨 Credits & Audio Assets
 
-- **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* &
-  *Digital Audio* packs), licensed under [Creative Commons CC0 1.0
-  Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with custom DSP
-  synthesized audio.
+- **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* & *Digital Audio* packs),
+  licensed under [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with
+  custom DSP synthesized audio.
+- **Fonts & Binary Size Optimization**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf), a trimmed subset
+  of Symbola (~25 KB vs original 2.19 MB) containing ASCII and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`,
+  `⭐`, `☆`, `↺`, `▶`, `⏭`). This optimization reduces release Android APK size to ~1.5 MB and minimizes WebAssembly
+  payload size.

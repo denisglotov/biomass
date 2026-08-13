@@ -20,11 +20,11 @@ pub struct Hud {
 impl Hud {
     pub async fn new() -> Self {
         #[cfg(target_arch = "wasm32")]
-        let font = load_ttf_font("assets/fonts/Symbola.ttf").await.ok();
+        let font = load_ttf_font("assets/fonts/Symbola-Subset.ttf").await.ok();
 
         #[cfg(not(target_arch = "wasm32"))]
         let font = {
-            let font_bytes = include_bytes!("../../assets/fonts/Symbola.ttf");
+            let font_bytes = include_bytes!("../../assets/fonts/Symbola-Subset.ttf");
             load_ttf_font_from_bytes(font_bytes).ok()
         };
 
