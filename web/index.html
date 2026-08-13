@@ -111,7 +111,13 @@
           window.addEventListener(
             evt,
             (e) => {
-              if (e.type === "keydown" && (e.key === "Meta" || e.key === "Control" || e.key === "Alt" || e.key === "Shift")) {
+              if (
+                e.type === "keydown" &&
+                (e.key === "Meta" ||
+                  e.key === "Control" ||
+                  e.key === "Alt" ||
+                  e.key === "Shift")
+              ) {
                 return;
               }
               unlockAudioContext();
