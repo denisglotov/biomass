@@ -10,6 +10,7 @@ mod wasm_backend {
         fn play_sound_tick();
         fn play_sound_pop();
         fn play_sound_win();
+        fn play_sound_fanfare();
         fn play_sound_loss();
         fn play_sound_click();
         fn play_sound_error();
@@ -29,6 +30,7 @@ mod wasm_backend {
                     SoundTrigger::BiomassTick => play_sound_tick(),
                     SoundTrigger::IsolationPop => play_sound_pop(),
                     SoundTrigger::WinFanfare => play_sound_win(),
+                    SoundTrigger::GrandFanfare => play_sound_fanfare(),
                     SoundTrigger::LossAlert => play_sound_loss(),
                     SoundTrigger::ButtonClick => play_sound_click(),
                     SoundTrigger::InvalidMove => play_sound_error(),
@@ -48,6 +50,7 @@ mod native_backend {
         snd_tick: Option<Sound>,
         snd_pop: Option<Sound>,
         snd_win: Option<Sound>,
+        snd_fanfare: Option<Sound>,
         snd_loss: Option<Sound>,
         snd_click: Option<Sound>,
         snd_error: Option<Sound>,
@@ -68,6 +71,9 @@ mod native_backend {
                 snd_win: load_sound_from_bytes(include_bytes!("../assets/win.wav"))
                     .await
                     .ok(),
+                snd_fanfare: load_sound_from_bytes(include_bytes!("../assets/fanfare.wav"))
+                    .await
+                    .ok(),
                 snd_loss: load_sound_from_bytes(include_bytes!("../assets/loss.wav"))
                     .await
                     .ok(),
@@ -86,6 +92,13 @@ mod native_backend {
                 SoundTrigger::BiomassTick => &self.snd_tick,
                 SoundTrigger::IsolationPop => &self.snd_pop,
                 SoundTrigger::WinFanfare => &self.snd_win,
+                SoundTrigger::GrandFanfare => {
+                    if self.snd_fanfare.is_some() {
+                        &self.snd_fanfare
+                    } else {
+                        &self.snd_win
+                    }
+                }
                 SoundTrigger::LossAlert => &self.snd_loss,
                 SoundTrigger::ButtonClick => &self.snd_click,
                 SoundTrigger::InvalidMove => &self.snd_error,

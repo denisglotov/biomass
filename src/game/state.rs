@@ -203,7 +203,12 @@ impl GameState {
                     } else {
                         1
                     };
-                    sound_trigger = Some(SoundTrigger::WinFanfare);
+                    let is_last_level = self.current_level_idx + 1 >= self.levels.len();
+                    sound_trigger = if is_last_level {
+                        Some(SoundTrigger::GrandFanfare)
+                    } else {
+                        Some(SoundTrigger::WinFanfare)
+                    };
                 } else if biomass_count >= self.level.max_threshold
                     || (!self.grid.has_any_legal_wall_placement() && biomass_count > 0)
                 {
@@ -236,6 +241,7 @@ pub enum SoundTrigger {
     BiomassTick,
     IsolationPop,
     WinFanfare,
+    GrandFanfare,
     LossAlert,
     ButtonClick,
     InvalidMove,

@@ -2,13 +2,14 @@ use crate::game::grid::{CellType, Edge, EdgeState};
 use crate::game::state::{GamePhase, GameState, SoundTrigger};
 use macroquad::prelude::*;
 
-use super::fx::{CellBirthEffect, CloneBridge, Particle, Shockwave};
+use super::fx::{CellBirthEffect, CloneBridge, Confetti, Particle, Shockwave};
 
 pub struct Hud {
     pub font: Option<Font>,
     pub hovered_edge: Option<Edge>,
     pub suppressed_hover_edge: Option<Edge>,
     pub particles: Vec<Particle>,
+    pub confetti: Vec<Confetti>,
     pub shockwaves: Vec<Shockwave>,
     pub clone_bridges: Vec<CloneBridge>,
     pub cell_births: Vec<CellBirthEffect>,
@@ -35,6 +36,7 @@ impl Hud {
             hovered_edge: None,
             suppressed_hover_edge: None,
             particles: Vec::new(),
+            confetti: Vec::new(),
             shockwaves: Vec::new(),
             clone_bridges: Vec::new(),
             cell_births: Vec::new(),
@@ -200,6 +202,105 @@ impl Hud {
         self.spawn_burst(to_x, to_y, Color::from_rgba(255, 255, 255, 255), 8);
     }
 
+    pub fn spawn_confetti_burst(&mut self, cx: f32, cy: f32, count: usize, scale: f32) {
+        let colors = [
+            Color::from_rgba(255, 215, 0, 255),   // Radiant Gold
+            Color::from_rgba(0, 230, 118, 255),   // Emerald Green
+            Color::from_rgba(0, 229, 255, 255),   // Neon Cyan
+            Color::from_rgba(255, 64, 129, 255),  // Hot Pink
+            Color::from_rgba(255, 145, 0, 255),   // Electric Orange
+            Color::from_rgba(213, 0, 249, 255),   // Bright Violet
+            Color::from_rgba(255, 255, 255, 255), // Pure White
+        ];
+        for _ in 0..count {
+            let angle = rand::gen_range(-std::f32::consts::PI * 0.95, -std::f32::consts::PI * 0.05);
+            let speed = rand::gen_range(160.0, 480.0) * scale;
+            let life = rand::gen_range(2.8, 5.2);
+            let color = colors[rand::gen_range(0, colors.len())];
+            self.confetti.push(Confetti {
+                x: cx,
+                y: cy,
+                vx: angle.cos() * speed,
+                vy: angle.sin() * speed,
+                rotation: rand::gen_range(0.0, std::f32::consts::TAU),
+                rotation_speed: rand::gen_range(-8.0, 8.0),
+                width: rand::gen_range(9.0, 16.0) * scale,
+                height: rand::gen_range(5.0, 10.0) * scale,
+                color,
+                life,
+                max_life: life,
+                sway_phase: rand::gen_range(0.0, std::f32::consts::TAU),
+            });
+        }
+    }
+
+    pub fn spawn_confetti_rain(&mut self, screen_w: f32, scale: f32, count: usize) {
+        let colors = [
+            Color::from_rgba(255, 215, 0, 255),   // Gold
+            Color::from_rgba(0, 230, 118, 255),   // Emerald
+            Color::from_rgba(0, 229, 255, 255),   // Cyan
+            Color::from_rgba(255, 64, 129, 255),  // Pink
+            Color::from_rgba(255, 145, 0, 255),   // Orange
+            Color::from_rgba(213, 0, 249, 255),   // Violet
+            Color::from_rgba(255, 255, 255, 255), // White
+        ];
+        for _ in 0..count {
+            let x = rand::gen_range(0.0, screen_w);
+            let y = rand::gen_range(-50.0, -10.0);
+            let speed_y = rand::gen_range(80.0, 220.0) * scale;
+            let speed_x = rand::gen_range(-40.0, 40.0) * scale;
+            let life = rand::gen_range(3.5, 6.0);
+            let color = colors[rand::gen_range(0, colors.len())];
+            self.confetti.push(Confetti {
+                x,
+                y,
+                vx: speed_x,
+                vy: speed_y,
+                rotation: rand::gen_range(0.0, std::f32::consts::TAU),
+                rotation_speed: rand::gen_range(-6.0, 6.0),
+                width: rand::gen_range(8.0, 15.0) * scale,
+                height: rand::gen_range(4.0, 9.0) * scale,
+                color,
+                life,
+                max_life: life,
+                sway_phase: rand::gen_range(0.0, std::f32::consts::TAU),
+            });
+        }
+    }
+
+    pub fn draw_confetti(&self) {
+        for c in &self.confetti {
+            let alpha = (c.life / c.max_life).min(1.0).clamp(0.0, 1.0);
+            let color = Color::new(c.color.r, c.color.g, c.color.b, alpha);
+
+            let cos_r = c.rotation.cos();
+            let sin_r = c.rotation.sin();
+            let flutter = (c.rotation * 1.6).cos().abs().max(0.18);
+            let hw = c.width * 0.5 * flutter;
+            let hh = c.height * 0.5;
+
+            let p1 = vec2(
+                c.x + (-hw * cos_r - -hh * sin_r),
+                c.y + (-hw * sin_r + -hh * cos_r),
+            );
+            let p2 = vec2(
+                c.x + (hw * cos_r - -hh * sin_r),
+                c.y + (hw * sin_r + -hh * cos_r),
+            );
+            let p3 = vec2(
+                c.x + (hw * cos_r - hh * sin_r),
+                c.y + (hw * sin_r + hh * cos_r),
+            );
+            let p4 = vec2(
+                c.x + (-hw * cos_r - hh * sin_r),
+                c.y + (-hw * sin_r + hh * cos_r),
+            );
+
+            draw_triangle(p1, p2, p3, color);
+            draw_triangle(p1, p3, p4, color);
+        }
+    }
+
     pub fn update_fx(&mut self, dt: f32) {
         for p in self.particles.iter_mut() {
             p.x += p.vx * dt;
@@ -207,6 +308,18 @@ impl Hud {
             p.life -= dt;
         }
         self.particles.retain(|p| p.life > 0.0);
+
+        let time = get_time() as f32;
+        for c in self.confetti.iter_mut() {
+            c.vy += 85.0 * dt;
+            c.vx += (time * 3.0 + c.sway_phase).sin() * 25.0 * dt;
+            c.vx *= 0.99;
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+            c.rotation += c.rotation_speed * dt;
+            c.life -= dt;
+        }
+        self.confetti.retain(|c| c.life > 0.0);
 
         for sw in self.shockwaves.iter_mut() {
             sw.radius += (sw.max_radius - sw.radius) * 7.0 * dt;
@@ -537,6 +650,7 @@ impl Hud {
             self.pan_offset = (0.0, 0.0);
             self.drag_start = None;
             self.is_dragging = false;
+            self.confetti.clear();
         }
 
         // Cell size scaling rule:
@@ -1337,7 +1451,7 @@ impl Hud {
     }
 
     fn draw_modal(
-        &self,
+        &mut self,
         state: &mut GameState,
         screen_w: f32,
         screen_h: f32,
@@ -1345,17 +1459,49 @@ impl Hud {
     ) -> Option<SoundTrigger> {
         let mut sound_trigger = None;
 
+        let is_win = state.phase == GamePhase::Victory;
+        let is_last_level = state.current_level_idx + 1 >= state.levels.len();
+        let is_congrats = is_win && is_last_level;
+
         // Dark Translucent Backdrop
         draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::from_rgba(0, 0, 0, 190));
 
-        let card_w = (420.0 * scale).min(screen_w * 0.92);
-        let card_h = (260.0 * scale).min(screen_h * 0.85);
+        // Manage and trigger confetti celebration on the final level victory
+        if is_congrats {
+            if self.confetti.is_empty() {
+                self.spawn_confetti_burst(screen_w * 0.25, screen_h * 0.75, 45, scale);
+                self.spawn_confetti_burst(screen_w * 0.75, screen_h * 0.75, 45, scale);
+                self.spawn_confetti_burst(screen_w * 0.50, screen_h * 0.50, 30, scale);
+            } else if self.confetti.len() < 160 {
+                self.spawn_confetti_rain(screen_w, scale, 2);
+            }
+        }
+
+        // Draw ambient celebration confetti
+        self.draw_confetti();
+
+        let card_w = if is_congrats {
+            (460.0 * scale).min(screen_w * 0.94)
+        } else {
+            (420.0 * scale).min(screen_w * 0.92)
+        };
+        let card_h = if is_congrats {
+            (290.0 * scale).min(screen_h * 0.88)
+        } else {
+            (260.0 * scale).min(screen_h * 0.85)
+        };
         let card_x = (screen_w - card_w) / 2.0;
         let card_y = (screen_h - card_h) / 2.0;
 
-        let is_win = state.phase == GamePhase::Victory;
-
-        let border_color = if is_win {
+        let border_color = if is_congrats {
+            let pulse = (get_time() as f32 * 3.5).sin() * 0.5 + 0.5;
+            Color::from_rgba(
+                (255.0 * pulse + 0.0 * (1.0 - pulse)) as u8,
+                (215.0 * pulse + 230.0 * (1.0 - pulse)) as u8,
+                (0.0 * pulse + 118.0 * (1.0 - pulse)) as u8,
+                255,
+            )
+        } else if is_win {
             Color::from_rgba(0, 230, 118, 255)
         } else {
             Color::from_rgba(255, 82, 82, 255)
@@ -1369,29 +1515,87 @@ impl Hud {
             card_h,
             Color::from_rgba(15, 23, 42, 255),
         );
-        draw_rectangle_lines(card_x, card_y, card_w, card_h, 3.0 * scale, border_color);
+        draw_rectangle_lines(card_x, card_y, card_w, card_h, 3.5 * scale, border_color);
 
-        let title = if is_win {
+        let title = if is_congrats {
+            "CONGRATULATIONS!"
+        } else if is_win {
             "CONTAINMENT COMPLETE"
         } else {
             "☣ CONTAINMENT BREACHED"
         };
-        let mut title_size = 24.0 * scale;
+        let mut title_size = if is_congrats {
+            26.0 * scale
+        } else {
+            24.0 * scale
+        };
         let mut title_dim = self.measure_text_str(title, title_size);
         if title_dim.width > card_w - 20.0 * scale {
             title_size *= (card_w - 20.0 * scale) / title_dim.width;
             title_dim = self.measure_text_str(title, title_size);
         }
         let title_x = card_x + (card_w - title_dim.width) / 2.0;
+        let title_color = if is_congrats {
+            Color::from_rgba(255, 215, 0, 255)
+        } else {
+            border_color
+        };
         self.draw_text_str(
             title,
             title_x,
-            card_y + 44.0 * scale,
+            card_y + 42.0 * scale,
             title_size,
-            border_color,
+            title_color,
         );
 
-        if is_win {
+        if is_congrats {
+            let banner = "★ ALL SECTORS CONTAINED ★";
+            let banner_dim = self.measure_text_str(banner, 16.0 * scale);
+            self.draw_text_str(
+                banner,
+                card_x + (card_w - banner_dim.width) / 2.0,
+                card_y + 70.0 * scale,
+                16.0 * scale,
+                Color::from_rgba(0, 230, 118, 255),
+            );
+
+            let stars_str = match state.star_rating {
+                3 => "⭐ ⭐ ⭐",
+                2 => "⭐ ⭐ ☆",
+                _ => "⭐ ☆ ☆",
+            };
+            let star_dim = self.measure_text_str(stars_str, 32.0 * scale);
+            self.draw_text_str(
+                stars_str,
+                card_x + (card_w - star_dim.width) / 2.0,
+                card_y + 112.0 * scale,
+                32.0 * scale,
+                Color::from_rgba(255, 215, 0, 255), // Bright Gold
+            );
+
+            let msg = format!(
+                "Facility secured! Final sector cleared in {} turns.",
+                state.turn_number
+            );
+            let msg_dim = self.measure_text_str(&msg, 15.0 * scale);
+            self.draw_text_str(
+                &msg,
+                card_x + (card_w - msg_dim.width) / 2.0,
+                card_y + 155.0 * scale,
+                15.0 * scale,
+                WHITE,
+            );
+
+            let msg2 = "All bio-threats neutralized. Outstanding containment!";
+            let msg2_dim = self.measure_text_str(msg2, 14.0 * scale);
+            self.draw_text_str(
+                msg2,
+                card_x + (card_w - msg2_dim.width) / 2.0,
+                card_y + 180.0 * scale,
+                14.0 * scale,
+                Color::from_rgba(148, 163, 184, 255),
+            );
+        } else if is_win {
             let stars_str = match state.star_rating {
                 3 => "⭐ ⭐ ⭐",
                 2 => "⭐ ⭐ ☆",
@@ -1427,7 +1631,7 @@ impl Hud {
             );
         }
 
-        let btn_w = (130.0 * scale).min(card_w * 0.42);
+        let btn_w = (140.0 * scale).min(card_w * 0.44);
         let btn_h = 36.0 * scale;
         let btn_y = card_y + card_h - 52.0 * scale;
 
@@ -1435,21 +1639,31 @@ impl Hud {
         let clicked = is_mouse_button_released(MouseButton::Left);
 
         let retry_rect = Rect::new(card_x + 20.0 * scale, btn_y, btn_w, btn_h);
-        self.draw_button("↺ Retry Level", retry_rect, mouse_pos, 15.0 * scale);
+        let retry_label = if is_congrats {
+            "↺ Replay Level"
+        } else {
+            "↺ Retry Level"
+        };
+        self.draw_button(retry_label, retry_rect, mouse_pos, 15.0 * scale);
         if clicked && retry_rect.contains(mouse_pos.into()) {
             state.reset_level();
+            self.confetti.clear();
             sound_trigger = Some(SoundTrigger::ButtonClick);
         }
 
         let next_rect = Rect::new(card_x + card_w - btn_w - 20.0 * scale, btn_y, btn_w, btn_h);
-        if is_win {
+        if is_congrats {
+            self.draw_button("⏮ Start from First", next_rect, mouse_pos, 15.0 * scale);
+            if clicked && next_rect.contains(mouse_pos.into()) {
+                state.load_level(0);
+                self.confetti.clear();
+                sound_trigger = Some(SoundTrigger::ButtonClick);
+            }
+        } else if is_win {
             self.draw_button("▶ Next Level", next_rect, mouse_pos, 15.0 * scale);
             if clicked && next_rect.contains(mouse_pos.into()) {
-                if state.current_level_idx + 1 < state.levels.len() {
-                    state.load_level(state.current_level_idx + 1);
-                } else {
-                    state.reset_level();
-                }
+                state.load_level(state.current_level_idx + 1);
+                self.confetti.clear();
                 sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         } else {
@@ -1460,6 +1674,7 @@ impl Hud {
                 } else {
                     state.reset_level();
                 }
+                self.confetti.clear();
                 sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         }
