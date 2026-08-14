@@ -23,22 +23,55 @@ pub struct Shockwave {
 }
 
 #[derive(Debug, Clone)]
-pub struct CloneBridge {
+pub struct SplashBead {
+    pub x: f32,
+    pub y: f32,
+    pub vx: f32,
+    pub vy: f32,
+    pub radius: f32,
+    pub color: Color,
+    pub life: f32,
+    pub max_life: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct WetSplash {
+    pub cx: f32,
+    pub cy: f32,
+    pub cell_size: f32,
+    pub life: f32,
+    pub max_life: f32,
+    pub beads: Vec<SplashBead>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CloneFxParams {
+    pub from_r: usize,
+    pub from_c: usize,
+    pub to_r: usize,
+    pub to_c: usize,
+    pub from_x: f32,
+    pub from_y: f32,
+    pub to_x: f32,
+    pub to_y: f32,
+    pub cell_size: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct WetDropletJump {
+    pub from_r: usize,
+    pub from_c: usize,
+    pub to_r: usize,
+    pub to_c: usize,
     pub from_x: f32,
     pub from_y: f32,
     pub to_x: f32,
     pub to_y: f32,
     pub life: f32,
     pub max_life: f32,
-}
-
-#[derive(Debug, Clone)]
-pub struct CellBirthEffect {
-    pub cx: f32,
-    pub cy: f32,
-    pub life: f32,
-    pub max_life: f32,
     pub cell_size: f32,
+    pub seed: f32,
+    pub has_splashed: bool,
 }
 
 #[derive(Debug, Clone)]

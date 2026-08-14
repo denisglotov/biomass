@@ -141,6 +141,13 @@ impl GameState {
             self.start_isolation_phase();
         } else {
             self.phase = GamePhase::BiomassExpansion;
+            self.current_anim_step = 0;
+            self.anim_timer = 0.0;
+            for event in &self.expansion_steps[0] {
+                self.grid
+                    .set_cell(event.to.0, event.to.1, CellType::Biomass);
+                self.newly_cloned_this_step.push(*event);
+            }
         }
     }
 
@@ -159,11 +166,16 @@ impl GameState {
 
         match self.phase {
             GamePhase::BiomassExpansion => {
-                let step_duration = 0.35;
+                let step_duration = 0.45;
+                if self.anim_timer == 0.0 && self.current_anim_step == 0 && !self.expansion_steps.is_empty() {
+                    sound_trigger = Some(SoundTrigger::BiomassTick);
+                }
                 self.anim_timer += dt;
 
                 if self.anim_timer >= step_duration {
                     self.anim_timer = 0.0;
+                    self.current_anim_step += 1;
+
                     if self.current_anim_step < self.expansion_steps.len() {
                         for event in &self.expansion_steps[self.current_anim_step] {
                             self.grid
@@ -171,10 +183,7 @@ impl GameState {
                             self.newly_cloned_this_step.push(*event);
                         }
                         sound_trigger = Some(SoundTrigger::BiomassTick);
-                        self.current_anim_step += 1;
-                    }
-
-                    if self.current_anim_step >= self.expansion_steps.len() {
+                    } else {
                         self.start_isolation_phase();
                     }
                 }

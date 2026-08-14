@@ -2,7 +2,9 @@ use crate::game::grid::{CellType, Edge, EdgeState};
 use crate::game::state::{GamePhase, GameState, SoundTrigger};
 use macroquad::prelude::*;
 
-use super::fx::{CellBirthEffect, CloneBridge, Confetti, Particle, Shockwave};
+use super::fx::{
+    CloneFxParams, Confetti, Particle, Shockwave, SplashBead, WetDropletJump, WetSplash,
+};
 
 pub struct Hud {
     pub font: Option<Font>,
@@ -11,8 +13,8 @@ pub struct Hud {
     pub particles: Vec<Particle>,
     pub confetti: Vec<Confetti>,
     pub shockwaves: Vec<Shockwave>,
-    pub clone_bridges: Vec<CloneBridge>,
-    pub cell_births: Vec<CellBirthEffect>,
+    pub wet_jumps: Vec<WetDropletJump>,
+    pub wet_splashes: Vec<WetSplash>,
     pub pan_offset: (f32, f32),
     pub drag_start: Option<(f32, f32)>,
     pub is_dragging: bool,
@@ -38,8 +40,8 @@ impl Hud {
             particles: Vec::new(),
             confetti: Vec::new(),
             shockwaves: Vec::new(),
-            clone_bridges: Vec::new(),
-            cell_births: Vec::new(),
+            wet_jumps: Vec::new(),
+            wet_splashes: Vec::new(),
             pan_offset: (0.0, 0.0),
             drag_start: None,
             is_dragging: false,
@@ -99,107 +101,91 @@ impl Hud {
         });
     }
 
-    pub fn spawn_clone_fx(
-        &mut self,
-        from_x: f32,
-        from_y: f32,
-        to_x: f32,
-        to_y: f32,
-        cell_size: f32,
-    ) {
-        // 1. Mitosis filament / protoplasmic tendril bridge
-        self.clone_bridges.push(CloneBridge {
-            from_x,
-            from_y,
-            to_x,
-            to_y,
-            life: 0.55,
-            max_life: 0.55,
-        });
-
-        // 2. Cell birth animation (elastic membrane pop & bio flash)
-        self.cell_births.push(CellBirthEffect {
-            cx: to_x,
-            cy: to_y,
+    pub fn spawn_clone_fx(&mut self, params: CloneFxParams) {
+        let seed = rand::gen_range(0.0, 100.0);
+        self.wet_jumps.push(WetDropletJump {
+            from_r: params.from_r,
+            from_c: params.from_c,
+            to_r: params.to_r,
+            to_c: params.to_c,
+            from_x: params.from_x,
+            from_y: params.from_y,
+            to_x: params.to_x,
+            to_y: params.to_y,
             life: 0.45,
             max_life: 0.45,
-            cell_size,
+            cell_size: params.cell_size,
+            seed,
+            has_splashed: false,
         });
 
-        // 3. Multi-ring bio shockwaves
-        // Emerald primary expansion ring
-        self.spawn_shockwave(
-            to_x,
-            to_y,
-            Color::from_rgba(0, 230, 118, 255),
-            cell_size * 1.35,
-        );
-        // Mint secondary fast shockwave
-        self.spawn_shockwave(
-            to_x,
-            to_y,
-            Color::from_rgba(105, 240, 174, 255),
-            cell_size * 0.9,
-        );
-        // White-hot core flash
-        self.spawn_shockwave(
-            to_x,
-            to_y,
-            Color::from_rgba(255, 255, 255, 230),
-            cell_size * 0.45,
-        );
         // Parent cell mitosis ripple recoil
         self.spawn_shockwave(
-            from_x,
-            from_y,
+            params.from_x,
+            params.from_y,
             Color::from_rgba(0, 230, 118, 180),
-            cell_size * 0.75,
+            params.cell_size * 0.75,
         );
+    }
 
-        // 4. Directional spore ejection stream (parent -> child)
-        let dx = to_x - from_x;
-        let dy = to_y - from_y;
-        let len = (dx * dx + dy * dy).sqrt().max(0.001);
-        let dir_x = dx / len;
-        let dir_y = dy / len;
-        let perp_x = -dir_y;
-        let perp_y = dir_x;
+    pub fn spawn_wet_splash(&mut self, cx: f32, cy: f32, cell_size: f32) {
+        let mut beads = Vec::new();
+        let colors = [
+            Color::from_rgba(0, 230, 118, 255),
+            Color::from_rgba(105, 240, 174, 255),
+            Color::from_rgba(174, 234, 0, 255),
+            Color::from_rgba(209, 250, 229, 255),
+            Color::from_rgba(255, 255, 255, 255),
+        ];
 
         for _ in 0..16 {
-            let t = rand::gen_range(0.0, 1.0);
-            let px = from_x + dx * t + perp_x * rand::gen_range(-6.0, 6.0);
-            let py = from_y + dy * t + perp_y * rand::gen_range(-6.0, 6.0);
-            let speed = rand::gen_range(40.0, 130.0);
-            let spread = rand::gen_range(-0.5, 0.5);
-            let vx = (dir_x + perp_x * spread) * speed;
-            let vy = (dir_y + perp_y * spread) * speed;
-            let life = rand::gen_range(0.3, 0.6);
-
-            let colors = [
-                Color::from_rgba(0, 230, 118, 255),
-                Color::from_rgba(105, 240, 174, 255),
-                Color::from_rgba(174, 234, 0, 255),
-                Color::from_rgba(255, 255, 255, 255),
-            ];
+            let angle = rand::gen_range(0.0, std::f32::consts::TAU);
+            let speed = rand::gen_range(35.0, 135.0);
+            let vx = angle.cos() * speed;
+            let vy = angle.sin() * speed - rand::gen_range(20.0, 50.0);
+            let life = rand::gen_range(0.24, 0.40);
             let color = colors[rand::gen_range(0, colors.len())];
 
-            self.particles.push(Particle {
-                x: px,
-                y: py,
+            beads.push(SplashBead {
+                x: cx + angle.cos() * rand::gen_range(1.0, 6.0),
+                y: cy + angle.sin() * rand::gen_range(1.0, 6.0),
                 vx,
                 vy,
-                radius: rand::gen_range(2.5, 5.0),
+                radius: rand::gen_range(2.0, 4.2),
                 color,
                 life,
                 max_life: life,
             });
         }
 
-        // 5. Radial spore explosion at destination
-        self.spawn_burst(to_x, to_y, Color::from_rgba(0, 230, 118, 255), 18);
-        self.spawn_burst(to_x, to_y, Color::from_rgba(105, 240, 174, 255), 14);
-        self.spawn_burst(to_x, to_y, Color::from_rgba(174, 234, 0, 255), 10);
-        self.spawn_burst(to_x, to_y, Color::from_rgba(255, 255, 255, 255), 8);
+        self.wet_splashes.push(WetSplash {
+            cx,
+            cy,
+            cell_size,
+            life: 0.40,
+            max_life: 0.40,
+            beads,
+        });
+
+        // Wet impact shockwaves
+        self.spawn_shockwave(
+            cx,
+            cy,
+            Color::from_rgba(0, 230, 118, 220),
+            cell_size * 1.2,
+        );
+        self.spawn_shockwave(
+            cx,
+            cy,
+            Color::from_rgba(105, 240, 174, 240),
+            cell_size * 0.8,
+        );
+        self.spawn_shockwave(
+            cx,
+            cy,
+            Color::from_rgba(255, 255, 255, 230),
+            cell_size * 0.45,
+        );
     }
 
     pub fn spawn_confetti_burst(&mut self, cx: f32, cy: f32, count: usize, scale: f32) {
@@ -327,15 +313,36 @@ impl Hud {
         }
         self.shockwaves.retain(|sw| sw.alpha > 0.0);
 
-        for b in self.clone_bridges.iter_mut() {
-            b.life -= dt;
+        for jump in self.wet_jumps.iter_mut() {
+            jump.life -= dt;
         }
-        self.clone_bridges.retain(|b| b.life > 0.0);
 
-        for cb in self.cell_births.iter_mut() {
-            cb.life -= dt;
+        let mut new_splashes = Vec::new();
+        for jump in self.wet_jumps.iter_mut() {
+            let progress = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
+            if progress >= 0.65 && !jump.has_splashed {
+                jump.has_splashed = true;
+                new_splashes.push((jump.to_x, jump.to_y, jump.cell_size));
+            }
         }
-        self.cell_births.retain(|cb| cb.life > 0.0);
+        for (tx, ty, cs) in new_splashes {
+            self.spawn_wet_splash(tx, ty, cs);
+        }
+        self.wet_jumps.retain(|j| j.life > 0.0);
+
+        for splash in self.wet_splashes.iter_mut() {
+            splash.life -= dt;
+            for bead in splash.beads.iter_mut() {
+                bead.x += bead.vx * dt;
+                bead.y += bead.vy * dt;
+                bead.vy += 160.0 * dt;
+                bead.vx *= 0.94;
+                bead.vy *= 0.94;
+                bead.life -= dt;
+            }
+            splash.beads.retain(|b| b.life > 0.0);
+        }
+        self.wet_splashes.retain(|s| s.life > 0.0);
     }
 
     pub fn draw_and_handle_input(&mut self, state: &mut GameState) -> Option<SoundTrigger> {
@@ -844,65 +851,143 @@ impl Hud {
                         );
                     }
                     CellType::Biomass => {
-                        draw_rectangle(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            Color::from_rgba(209, 250, 229, 255),
-                        );
-                        draw_rectangle_lines(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            1.5,
-                            Color::from_rgba(0, 230, 118, 200),
-                        );
+                        let active_target_jump = self.wet_jumps.iter().find(|j| j.to_r == r && j.to_c == c);
+                        let active_parent_jump = self.wet_jumps.iter().find(|j| j.from_r == r && j.from_c == c);
 
-                        let center_x = cx + cell_size / 2.0;
-                        let center_y = cy + cell_size / 2.0;
-                        let pulse = (t * 4.0 + (r + c) as f32).sin() * (2.5 * scale);
-                        let base_r = cell_size * 0.28 + pulse;
+                        let (is_in_flight, bloom_s) = if let Some(jump) = active_target_jump {
+                            let prog = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
+                            if prog < 0.65 {
+                                (true, 0.0)
+                            } else {
+                                (false, ((prog - 0.65) / 0.35).clamp(0.0, 1.0))
+                            }
+                        } else {
+                            (false, 1.0)
+                        };
 
-                        draw_circle(
-                            center_x,
-                            center_y,
-                            base_r * 1.5,
-                            Color::from_rgba(0, 230, 118, 50),
-                        );
-                        draw_circle(
-                            center_x,
-                            center_y,
-                            base_r * 1.2,
-                            Color::from_rgba(0, 230, 118, 100),
-                        );
-                        draw_circle(
-                            center_x,
-                            center_y,
-                            base_r,
-                            Color::from_rgba(0, 230, 118, 255),
-                        );
+                        if is_in_flight {
+                            // Target cell is not yet occupied by biomass (droplet is still airborne)
+                            let tile_color = if (r + c) % 2 == 0 {
+                                Color::from_rgba(248, 250, 252, 255)
+                            } else {
+                                Color::from_rgba(226, 232, 240, 255)
+                            };
 
-                        for i in 0..4 {
-                            let angle = t * 2.8 + (i as f32 * std::f32::consts::TAU / 4.0);
-                            let orbit_radius = base_r * 0.55;
-                            let ox = center_x + angle.cos() * orbit_radius;
-                            let oy = center_y + angle.sin() * orbit_radius;
+                            draw_rectangle(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                tile_color,
+                            );
+
+                            draw_rectangle_lines(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                1.0,
+                                Color::from_rgba(2, 132, 199, 120),
+                            );
+                        } else {
+                            if bloom_s < 1.0 {
+                                // Draw base empty checkered tile underneath
+                                let tile_color = if (r + c) % 2 == 0 {
+                                    Color::from_rgba(248, 250, 252, 255)
+                                } else {
+                                    Color::from_rgba(226, 232, 240, 255)
+                                };
+                                draw_rectangle(
+                                    cx + 1.0,
+                                    cy + 1.0,
+                                    cell_size - 2.0,
+                                    cell_size - 2.0,
+                                    tile_color,
+                                );
+                            }
+
+                            // Biomass background tile (fades in smoothly with landing)
+                            let bg_alpha = (bloom_s * 1.8).min(1.0);
+                            draw_rectangle(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                Color::new(0.82, 0.98, 0.90, bg_alpha),
+                            );
+                            draw_rectangle_lines(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                1.5,
+                                Color::new(0.0, 0.9, 0.46, bg_alpha * 0.78),
+                            );
+
+                            // Elastic bloom scale for newly landing cell
+                            let growth_scale = if bloom_s < 1.0 {
+                                (1.0 - (-5.0 * bloom_s).exp() * (std::f32::consts::PI * 2.5 * bloom_s).cos()).max(0.0)
+                            } else {
+                                1.0
+                            };
+
+                            // Parent cell recoil pulse
+                            let parent_pulse = if let Some(p_jump) = active_parent_jump {
+                                let p_prog = (1.0 - (p_jump.life / p_jump.max_life)).clamp(0.0, 1.0);
+                                if p_prog < 0.35 {
+                                    ((1.0 - p_prog / 0.35) * std::f32::consts::PI).sin() * (-3.0 * scale)
+                                } else {
+                                    0.0
+                                }
+                            } else {
+                                0.0
+                            };
+
+                            let center_x = cx + cell_size / 2.0;
+                            let center_y = cy + cell_size / 2.0;
+                            let pulse = (t * 4.0 + (r + c) as f32).sin() * (2.5 * scale) + parent_pulse;
+                            let base_r = (cell_size * 0.28 + pulse) * growth_scale;
+                            let core_alpha = (bloom_s * 2.0).min(1.0);
+
                             draw_circle(
-                                ox,
-                                oy,
+                                center_x,
+                                center_y,
+                                base_r * 1.5,
+                                Color::new(0.0, 0.9, 0.46, core_alpha * 0.2),
+                            );
+                            draw_circle(
+                                center_x,
+                                center_y,
+                                base_r * 1.2,
+                                Color::new(0.0, 0.9, 0.46, core_alpha * 0.4),
+                            );
+                            draw_circle(
+                                center_x,
+                                center_y,
+                                base_r,
+                                Color::new(0.0, 0.9, 0.46, core_alpha),
+                            );
+
+                            for i in 0..4 {
+                                let angle = t * 2.8 + (i as f32 * std::f32::consts::TAU / 4.0) + (1.0 - bloom_s) * 4.0;
+                                let orbit_radius = base_r * 0.55;
+                                let ox = center_x + angle.cos() * orbit_radius;
+                                let oy = center_y + angle.sin() * orbit_radius;
+                                draw_circle(
+                                    ox,
+                                    oy,
+                                    base_r * 0.28,
+                                    Color::new(0.41, 0.94, 0.68, core_alpha),
+                                );
+                            }
+
+                            draw_circle(
+                                center_x - base_r * 0.25,
+                                center_y - base_r * 0.25,
                                 base_r * 0.28,
-                                Color::from_rgba(105, 240, 174, 255),
+                                Color::new(1.0, 1.0, 1.0, core_alpha),
                             );
                         }
-
-                        draw_circle(
-                            center_x - base_r * 0.25,
-                            center_y - base_r * 0.25,
-                            base_r * 0.28,
-                            WHITE,
-                        );
                     }
                     CellType::Obstacle => {
                         draw_rectangle(
@@ -1253,13 +1338,23 @@ impl Hud {
             }
         }
 
-        // 9. Particle FX, Mitosis Bridges & Blast Shockwaves
+        // 9. Particle FX, Wet Droplet Jumps, Splashes & Shockwaves
         for event in &state.newly_cloned_this_step {
             let from_cx = gx + (event.from.1 as f32 + 0.5) * cell_size;
             let from_cy = gy + (event.from.0 as f32 + 0.5) * cell_size;
             let to_cx = gx + (event.to.1 as f32 + 0.5) * cell_size;
             let to_cy = gy + (event.to.0 as f32 + 0.5) * cell_size;
-            self.spawn_clone_fx(from_cx, from_cy, to_cx, to_cy, cell_size);
+            self.spawn_clone_fx(CloneFxParams {
+                from_r: event.from.0,
+                from_c: event.from.1,
+                to_r: event.to.0,
+                to_c: event.to.1,
+                from_x: from_cx,
+                from_y: from_cy,
+                to_x: to_cx,
+                to_y: to_cy,
+                cell_size,
+            });
         }
         state.newly_cloned_this_step.clear();
 
@@ -1274,122 +1369,201 @@ impl Hud {
         }
         state.newly_starved_this_step.clear();
 
-        // 9a. Draw Mitosis Bridges / Protoplasmic Streams
-        for b in &self.clone_bridges {
-            let progress = (1.0 - (b.life / b.max_life)).clamp(0.0, 1.0);
-            let alpha = (b.life / b.max_life).clamp(0.0, 1.0);
+        // 9a. Draw Wet Biomass Droplet Jumps (Smooth, Viscous Parabolic Leaps)
+        for jump in &self.wet_jumps {
+            let progress = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
 
-            // Tendril reaches full distance quickly then dissipates
-            let reach = (progress / 0.3).min(1.0);
-            let current_to_x = b.from_x + (b.to_x - b.from_x) * reach;
-            let current_to_y = b.from_y + (b.to_y - b.from_y) * reach;
+            if progress < 0.65 {
+                let p_flight = (progress / 0.65).clamp(0.0, 1.0);
+                // Hermite smoothstep easing for tangible organic weight
+                let p = p_flight * p_flight * (3.0 - 2.0 * p_flight);
 
-            let pulse = (t * 12.0).sin() * 0.5 + 0.5;
+                let arc_h = jump.cell_size * 0.42;
+                let x_base = jump.from_x + (jump.to_x - jump.from_x) * p;
+                let y_base = jump.from_y + (jump.to_y - jump.from_y) * p;
+                let y_arc = -arc_h * 4.0 * p * (1.0 - p);
+                let drop_x = x_base;
+                let drop_y = y_base + y_arc;
 
-            // Outer glowing emerald halo
-            draw_line(
-                b.from_x,
-                b.from_y,
-                current_to_x,
-                current_to_y,
-                (9.0 + 3.0 * pulse) * scale,
-                Color::new(0.0, 0.9, 0.46, alpha * (0.5 + 0.4 * pulse)),
-            );
+                // Motion vector & orientation for squash and stretch
+                let dx = jump.to_x - jump.from_x;
+                let dy = jump.to_y - jump.from_y - arc_h * 4.0 * (1.0 - 2.0 * p);
+                let len = (dx * dx + dy * dy).sqrt().max(0.001);
+                let dir_x = dx / len;
+                let dir_y = dy / len;
 
-            // Mid neon core
-            draw_line(
-                b.from_x,
-                b.from_y,
-                current_to_x,
-                current_to_y,
-                4.5 * scale,
-                Color::new(0.41, 0.94, 0.68, alpha * 0.9),
-            );
+                let v_speed = 4.0 * p * (1.0 - p);
+                let stretch = 1.0 + 0.65 * v_speed;
+                let squash = 1.0 / stretch.sqrt();
 
-            // Inner white-hot filament
-            draw_line(
-                b.from_x,
-                b.from_y,
-                current_to_x,
-                current_to_y,
-                1.8 * scale,
-                Color::new(1.0, 1.0, 1.0, alpha),
-            );
+                // Fluid surface tension oscillation (wobble)
+                let wobble = ((p * 26.0 + jump.seed).sin()) * 0.12 * (1.0 - p * 0.4);
+                let base_r = jump.cell_size * 0.22 * (1.0 + wobble) * scale;
 
-            // Flowing bio-globules traveling along bridge
-            for i in 0..3 {
-                let globule_phase = (progress * 2.2 + i as f32 * 0.33) % 1.0;
-                if globule_phase <= reach {
-                    let gx_pos = b.from_x + (b.to_x - b.from_x) * globule_phase;
-                    let gy_pos = b.from_y + (b.to_y - b.from_y) * globule_phase;
-                    let globule_r = (3.0 + 1.5 * pulse) * scale * alpha;
-                    draw_circle(
-                        gx_pos,
-                        gy_pos,
-                        globule_r * 1.6,
-                        Color::new(0.0, 0.9, 0.46, alpha * 0.6),
-                    );
-                    draw_circle(
-                        gx_pos,
-                        gy_pos,
-                        globule_r,
-                        Color::new(0.68, 1.0, 0.85, alpha),
-                    );
-                    draw_circle(
-                        gx_pos,
-                        gy_pos,
-                        globule_r * 0.5,
-                        Color::new(1.0, 1.0, 1.0, alpha),
+                // Viscous liquid neck / stretching filament during early flight (p < 0.45)
+                if p < 0.45 {
+                    let neck_fade = 1.0 - (p / 0.45);
+                    let steps = 10;
+                    let mut prev_pt = (jump.from_x, jump.from_y);
+                    for i in 1..=steps {
+                        let u = i as f32 / steps as f32;
+                        let ux = jump.from_x + (drop_x - jump.from_x) * u;
+                        let uy = jump.from_y + (drop_y - jump.from_y) * u - (arc_h * 0.5) * (4.0 * u * (1.0 - u)) * neck_fade;
+                        let taper = 1.0 - 0.65 * (4.0 * u * (1.0 - u));
+                        let w = (jump.cell_size * 0.20 * neck_fade * taper * scale).max(1.5 * scale);
+                        draw_line(
+                            prev_pt.0, prev_pt.1, ux, uy,
+                            w * 1.5,
+                            Color::new(0.0, 0.9, 0.46, neck_fade * 0.35),
+                        );
+                        draw_line(
+                            prev_pt.0, prev_pt.1, ux, uy,
+                            w,
+                            Color::new(0.0, 0.9, 0.46, neck_fade * 0.85),
+                        );
+                        draw_line(
+                            prev_pt.0, prev_pt.1, ux, uy,
+                            (w * 0.45).max(1.0),
+                            Color::new(0.41, 0.94, 0.68, neck_fade * 0.95),
+                        );
+                        prev_pt = (ux, uy);
+                    }
+                }
+
+                // Trailing micro-droplets (bead-on-a-string capillary effect)
+                if p >= 0.18 {
+                    let trails = [0.08, 0.16];
+                    for (idx, &lag) in trails.iter().enumerate() {
+                        let tp_flight = (p_flight - lag).max(0.0);
+                        let tp = tp_flight * tp_flight * (3.0 - 2.0 * tp_flight);
+                        let tx = jump.from_x + (jump.to_x - jump.from_x) * tp;
+                        let ty = jump.from_y + (jump.to_y - jump.from_y) * tp - arc_h * 4.0 * tp * (1.0 - tp);
+                        let bead_r = (jump.cell_size * (0.075 - idx as f32 * 0.022) * scale).max(2.0);
+                        let bead_alpha = (1.0 - lag / 0.28).clamp(0.0, 1.0);
+
+                        draw_circle(tx, ty, bead_r * 1.5, Color::new(0.0, 0.9, 0.46, bead_alpha * 0.35));
+                        draw_circle(tx, ty, bead_r, Color::new(0.0, 0.9, 0.46, bead_alpha * 0.9));
+                        draw_circle(tx, ty, bead_r * 0.55, Color::new(0.41, 0.94, 0.68, bead_alpha));
+                        draw_circle(tx - bead_r * 0.3, ty - bead_r * 0.3, (bead_r * 0.3).max(1.0), Color::new(1.0, 1.0, 1.0, bead_alpha * 0.95));
+                    }
+                }
+
+                // Main fluid teardrop blob (composite overlapping gelatinous discs)
+                let head_pos = (
+                    drop_x + dir_x * (base_r * 0.35 * stretch),
+                    drop_y + dir_y * (base_r * 0.35 * stretch),
+                );
+                let body_pos = (drop_x, drop_y);
+                let tail_pos = (
+                    drop_x - dir_x * (base_r * 0.55 * stretch),
+                    drop_y - dir_y * (base_r * 0.55 * stretch),
+                );
+
+                let blob_parts = [
+                    (tail_pos, base_r * 0.65 * squash),
+                    (body_pos, base_r * squash),
+                    (head_pos, base_r * 0.95 * squash),
+                ];
+
+                // Outer soft bioluminescent slime glow
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r * 1.55, Color::from_rgba(0, 230, 118, 55));
+                }
+                // Translucent gel mantle
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r * 1.25, Color::from_rgba(0, 200, 100, 140));
+                }
+                // Viscous saturated emerald body
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r, Color::from_rgba(0, 230, 118, 255));
+                }
+                // Bright cytoplasmic core
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r * 0.6, Color::from_rgba(105, 240, 174, 255));
+                }
+
+                // Glossy specular reflection highlights (wet liquid sheen)
+                let glint_x = head_pos.0 - base_r * 0.32;
+                let glint_y = head_pos.1 - base_r * 0.32;
+                draw_circle(
+                    glint_x,
+                    glint_y,
+                    (base_r * 0.30).max(2.0),
+                    Color::from_rgba(255, 255, 255, 245),
+                );
+                draw_circle(
+                    glint_x + base_r * 0.22,
+                    glint_y - base_r * 0.08,
+                    (base_r * 0.15).max(1.2),
+                    Color::from_rgba(255, 255, 255, 190),
+                );
+                // Lower rim bounce light
+                draw_circle(
+                    body_pos.0 + base_r * 0.30,
+                    body_pos.1 + base_r * 0.30,
+                    base_r * 0.22,
+                    Color::from_rgba(174, 234, 0, 130),
+                );
+            } else {
+                // Landing splat phase (pancake ripple & splash spread)
+                let s = (progress - 0.65) / 0.35;
+                let splat_r = jump.cell_size * (0.22 + 0.45 * s) * scale;
+                let splat_alpha = ((1.0 - s) * 0.95).clamp(0.0, 1.0);
+
+                draw_circle_lines(
+                    jump.to_x,
+                    jump.to_y,
+                    splat_r,
+                    (3.5 * (1.0 - s) * scale).max(1.0),
+                    Color::new(0.0, 0.9, 0.46, splat_alpha),
+                );
+                if s < 0.6 {
+                    let inner_r = splat_r * 0.6;
+                    draw_circle_lines(
+                        jump.to_x,
+                        jump.to_y,
+                        inner_r,
+                        (2.5 * (1.0 - s / 0.6) * scale).max(1.0),
+                        Color::new(0.41, 0.94, 0.68, splat_alpha),
                     );
                 }
             }
         }
 
-        // 9b. Draw Cell Birth Elastic Swell & Glow
-        for cb in &self.cell_births {
-            let progress = (1.0 - (cb.life / cb.max_life)).clamp(0.0, 1.0);
-            let alpha = (cb.life / cb.max_life).clamp(0.0, 1.0);
+        // 9b. Draw Wet Splash Splatter Beads & Surface Slime Puddle
+        for splash in &self.wet_splashes {
+            let prog = (1.0 - (splash.life / splash.max_life)).clamp(0.0, 1.0);
+            let alpha = (splash.life / splash.max_life).clamp(0.0, 1.0);
 
-            // Elastic pop curve: rapid expansion up to 1.35x, then springy settle to 1.0x
-            let scale_factor = if progress < 0.4 {
-                let p = progress / 0.4;
-                (1.0 - (1.0 - p).powi(3)) * 1.35
-            } else {
-                let p = (progress - 0.4) / 0.6;
-                1.0 + 0.35 * (1.0 - p) * (p * std::f32::consts::PI * 2.0).cos()
-            };
-
-            let birth_r = (cb.cell_size * 0.32) * scale_factor;
-
-            // Radiant flash halo
-            let flash_alpha = (alpha * 1.5).min(1.0);
+            // Expanding fluid puddle on tile surface
+            let puddle_r = (splash.cell_size * (0.15 + 0.25 * prog) * scale).max(1.0);
             draw_circle(
-                cb.cx,
-                cb.cy,
-                birth_r * 1.6,
-                Color::new(0.0, 0.9, 0.46, flash_alpha * 0.4),
+                splash.cx,
+                splash.cy,
+                puddle_r * 1.3,
+                Color::new(0.0, 0.9, 0.46, alpha * 0.25),
             );
             draw_circle(
-                cb.cx,
-                cb.cy,
-                birth_r * 1.25,
-                Color::new(0.41, 0.94, 0.68, flash_alpha * 0.7),
-            );
-            draw_circle(
-                cb.cx,
-                cb.cy,
-                birth_r,
-                Color::new(0.85, 1.0, 0.9, flash_alpha),
+                splash.cx,
+                splash.cy,
+                puddle_r,
+                Color::new(0.41, 0.94, 0.68, alpha * 0.4),
             );
 
-            // High-speed spinning birth spore pods
-            for i in 0..4 {
-                let angle = progress * 10.0 + (i as f32 * std::f32::consts::TAU / 4.0);
-                let pod_dist = birth_r * 0.7;
-                let px = cb.cx + angle.cos() * pod_dist;
-                let py = cb.cy + angle.sin() * pod_dist;
-                draw_circle(px, py, birth_r * 0.3, Color::new(0.0, 1.0, 0.5, alpha));
-                draw_circle(px, py, birth_r * 0.15, Color::new(1.0, 1.0, 1.0, alpha));
+            for bead in &splash.beads {
+                let bead_prog = (1.0 - (bead.life / bead.max_life)).clamp(0.0, 1.0);
+                let alpha = (bead.life / bead.max_life).clamp(0.0, 1.0);
+                let r = (bead.radius * (1.0 - bead_prog * 0.5) * scale).max(1.5);
+                let col = Color::new(bead.color.r, bead.color.g, bead.color.b, alpha);
+
+                draw_circle(bead.x, bead.y, r * 1.4, Color::new(0.0, 0.9, 0.46, alpha * 0.35));
+                draw_circle(bead.x, bead.y, r, col);
+                draw_circle(
+                    bead.x - r * 0.3,
+                    bead.y - r * 0.3,
+                    (r * 0.35).max(1.0),
+                    Color::new(1.0, 1.0, 1.0, alpha * 0.9),
+                );
             }
         }
 
