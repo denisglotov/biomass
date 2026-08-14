@@ -8,20 +8,29 @@ pub struct CloneEvent {
     pub to: (usize, usize),
 }
 
-/// Performs step-by-step biomass expansion up to `steps` distance.
+/// Performs step-by-step biomass expansion up to `steps` distance, capped at `max_clones` total clones.
 /// Each active biomass cell produces 1 new cell per step (chosen randomly among adjacent free cells).
+/// If more cells are ready to clone than the remaining clone budget, only that number is randomly selected.
 /// Returns a list of steps, where each step contains the clone events `CloneEvent { from, to }`.
-pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<CloneEvent>> {
+pub fn expand_biomass_step_by_step(
+    grid: &Grid,
+    max_steps: usize,
+    max_clones: usize,
+) -> Vec<Vec<CloneEvent>> {
     let mut steps_history = Vec::new();
-    if max_steps == 0 {
+    if max_steps == 0 || max_clones == 0 {
         return steps_history;
     }
 
     let mut current_biomass: HashSet<(usize, usize)> = grid.active_biomass.clone();
-
     let mut infected_this_turn: HashSet<(usize, usize)> = HashSet::new();
+    let mut total_clones = 0;
 
     for _step in 0..max_steps {
+        if total_clones >= max_clones {
+            break;
+        }
+
         let mut step_newly_infected = Vec::new();
         let mut frontier: Vec<(usize, usize)> = Vec::new();
 
@@ -35,6 +44,10 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<Clo
         }
 
         for &(r, c) in &biomass_list {
+            if total_clones >= max_clones {
+                break;
+            }
+
             let candidates: Vec<_> = grid
                 .valid_neighbors(r, c)
                 .filter(|&(nr, nc)| {
@@ -55,6 +68,7 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<Clo
                     to: (target_r, target_c),
                 });
                 frontier.push((target_r, target_c));
+                total_clones += 1;
             }
         }
 
@@ -273,7 +287,7 @@ mod tests {
     fn expand_biomass_records_clone_events() {
         let mut grid = Grid::new(1, 3);
         grid.set_cell(0, 0, CellType::Biomass);
-        let steps = expand_biomass_step_by_step(&grid, 1);
+        let steps = expand_biomass_step_by_step(&grid, 1, 4);
         assert_eq!(steps.len(), 1);
         assert_eq!(steps[0].len(), 1);
         assert_eq!(
@@ -283,5 +297,41 @@ mod tests {
                 to: (0, 1)
             }
         );
+    }
+
+    #[test]
+    fn expand_biomass_respects_max_clones_limit() {
+        // 5 isolated biomass cells with empty space to the right
+        let mut grid = Grid::new(5, 3);
+        for r in 0..5 {
+            grid.set_cell(r, 0, CellType::Biomass);
+        }
+        // max_clones = 2 even though 5 cells are ready to clone
+        let steps = expand_biomass_step_by_step(&grid, 1, 2);
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].len(), 2);
+        // All cloned events must be valid
+        for event in &steps[0] {
+            assert_eq!(grid.get_cell(event.from.0, event.from.1), CellType::Biomass);
+            assert_eq!(grid.get_cell(event.to.0, event.to.1), CellType::Empty);
+        }
+    }
+
+    #[test]
+    fn expand_biomass_zero_max_clones() {
+        let mut grid = Grid::new(3, 3);
+        grid.set_cell(1, 1, CellType::Biomass);
+        let steps = expand_biomass_step_by_step(&grid, 1, 0);
+        assert!(steps.is_empty());
+    }
+
+    #[test]
+    fn expand_biomass_multi_step_capped() {
+        // Grid with a single biomass cell and 2 steps, but max_clones = 2
+        let mut grid = Grid::new(5, 5);
+        grid.set_cell(2, 2, CellType::Biomass);
+        let steps = expand_biomass_step_by_step(&grid, 2, 2);
+        let total_clones: usize = steps.iter().map(|step| step.len()).sum();
+        assert!(total_clones <= 2);
     }
 }

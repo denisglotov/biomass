@@ -128,8 +128,10 @@ impl GameState {
             return;
         }
 
-        // Calculate biomass expansion steps
-        self.expansion_steps = expand_biomass_step_by_step(&self.grid, self.level.spread_steps);
+        // Calculate biomass expansion steps (capped at walls_per_turn * 2 per turn)
+        let max_clones = self.level.walls_per_turn * 2;
+        self.expansion_steps =
+            expand_biomass_step_by_step(&self.grid, self.level.spread_steps, max_clones);
         self.current_anim_step = 0;
         self.anim_timer = 0.0;
 
