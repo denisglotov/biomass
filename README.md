@@ -79,7 +79,10 @@ just ci
 ```
 
 ### Continuous Integration (GitHub Actions)
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and WebAssembly compilation.
+
+Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and
+`pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and
+WebAssembly compilation.
 
 ---
 
@@ -121,19 +124,43 @@ rustup target add aarch64-linux-android
 brew install --cask temurin@21  # or any JDK 17+
 ```
 
-### Building
+### Building APK & Android App Bundle (.aab)
 
 ```bash
-ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
-  just build-android
+# Build release APK
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools just build-android
+
+# Build release Android App Bundle (.aab) for Google Play Store
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools just build-aab
 ```
 
-The APK will be created at:
-```
-target/android-artifacts/release/apk/biomass.apk
+Artifact outputs:
+- **APK**: `target/android-artifacts/release/apk/biomass.apk`
+- **AAB**: `target/android-artifacts/release/apk/biomass.aab`
+
+---
+
+### 🔑 Signing for Production Release
+
+#### 1. Generate Release Keystore (One-Time)
+```bash
+keytool -genkeypair -v -keystore release.keystore -alias biomass -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-### Installing & Running
+#### 2. Sign APK (`apksigner`)
+```bash
+apksigner sign --ks release.keystore --ks-key-alias biomass \
+  --out target/android-artifacts/release/apk/biomass-signed.apk \
+  target/android-artifacts/release/bin/biomass/biomass_unaligned.apk
+```
+
+#### 3. Sign Android App Bundle (`jarsigner`)
+```bash
+jarsigner -keystore release.keystore target/android-artifacts/release/apk/biomass.aab biomass
+jarsigner -verify target/android-artifacts/release/apk/biomass.aab
+```
+
+### Installing & Running APK
 
 ```bash
 # List connected devices
@@ -158,7 +185,10 @@ under the `[package.metadata.android]` section.
 
 ## 🎨 Credits & Audio Assets
 
-- **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* &
-  *Digital Audio* packs), licensed under [Creative Commons CC0 1.0
-  Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with custom DSP
-  synthesized audio.
+- **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* & *Digital Audio* packs),
+  licensed under [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with
+  custom DSP synthesized audio.
+- **Fonts & Binary Size Optimization**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf), a trimmed subset
+  of Symbola (~25 KB vs original 2.19 MB) containing ASCII and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`,
+  `⭐`, `☆`, `↺`, `▶`, `⏭`). This optimization reduces release Android APK size to ~1.5 MB and minimizes WebAssembly
+  payload size.

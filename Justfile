@@ -21,6 +21,10 @@ build-wasm:
 build-android:
     cargo quad-apk build --release
 
+# Build release Android App Bundle (.aab) for Google Play publishing
+build-aab: build-android
+    ./scripts/build-aab.sh
+
 # Check for compilation errors
 check:
     cargo check
