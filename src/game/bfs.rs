@@ -2,10 +2,16 @@ use super::grid::{CellType, Grid};
 use macroquad::rand::gen_range;
 use std::collections::{HashSet, VecDeque};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CloneEvent {
+    pub from: (usize, usize),
+    pub to: (usize, usize),
+}
+
 /// Performs step-by-step biomass expansion up to `steps` distance.
 /// Each active biomass cell produces 1 new cell per step (chosen randomly among adjacent free cells).
-/// Returns a list of steps, where each step contains the coordinates `(r, c)` of newly infected cells.
-pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(usize, usize)>> {
+/// Returns a list of steps, where each step contains the clone events `CloneEvent { from, to }`.
+pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<CloneEvent>> {
     let mut steps_history = Vec::new();
     if max_steps == 0 {
         return steps_history;
@@ -44,7 +50,10 @@ pub fn expand_biomass_step_by_step(grid: &Grid, max_steps: usize) -> Vec<Vec<(us
                 let (target_r, target_c) = candidates[idx];
 
                 infected_this_turn.insert((target_r, target_c));
-                step_newly_infected.push((target_r, target_c));
+                step_newly_infected.push(CloneEvent {
+                    from: (r, c),
+                    to: (target_r, target_c),
+                });
                 frontier.push((target_r, target_c));
             }
         }
@@ -258,5 +267,21 @@ mod tests {
             .collect();
         let expected: HashSet<_> = [(1, 1), (1, 2), (2, 1), (2, 2)].into_iter().collect();
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn expand_biomass_records_clone_events() {
+        let mut grid = Grid::new(1, 3);
+        grid.set_cell(0, 0, CellType::Biomass);
+        let steps = expand_biomass_step_by_step(&grid, 1);
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].len(), 1);
+        assert_eq!(
+            steps[0][0],
+            CloneEvent {
+                from: (0, 0),
+                to: (0, 1)
+            }
+        );
     }
 }

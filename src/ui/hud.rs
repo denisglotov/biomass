@@ -2,7 +2,7 @@ use crate::game::grid::{CellType, Edge, EdgeState};
 use crate::game::state::{GamePhase, GameState, SoundTrigger};
 use macroquad::prelude::*;
 
-use super::fx::{Particle, Shockwave};
+use super::fx::{CellBirthEffect, CloneBridge, Particle, Shockwave};
 
 pub struct Hud {
     pub font: Option<Font>,
@@ -10,6 +10,8 @@ pub struct Hud {
     pub suppressed_hover_edge: Option<Edge>,
     pub particles: Vec<Particle>,
     pub shockwaves: Vec<Shockwave>,
+    pub clone_bridges: Vec<CloneBridge>,
+    pub cell_births: Vec<CellBirthEffect>,
     pub pan_offset: (f32, f32),
     pub drag_start: Option<(f32, f32)>,
     pub is_dragging: bool,
@@ -34,6 +36,8 @@ impl Hud {
             suppressed_hover_edge: None,
             particles: Vec::new(),
             shockwaves: Vec::new(),
+            clone_bridges: Vec::new(),
+            cell_births: Vec::new(),
             pan_offset: (0.0, 0.0),
             drag_start: None,
             is_dragging: false,
@@ -93,6 +97,109 @@ impl Hud {
         });
     }
 
+    pub fn spawn_clone_fx(
+        &mut self,
+        from_x: f32,
+        from_y: f32,
+        to_x: f32,
+        to_y: f32,
+        cell_size: f32,
+    ) {
+        // 1. Mitosis filament / protoplasmic tendril bridge
+        self.clone_bridges.push(CloneBridge {
+            from_x,
+            from_y,
+            to_x,
+            to_y,
+            life: 0.55,
+            max_life: 0.55,
+        });
+
+        // 2. Cell birth animation (elastic membrane pop & bio flash)
+        self.cell_births.push(CellBirthEffect {
+            cx: to_x,
+            cy: to_y,
+            life: 0.45,
+            max_life: 0.45,
+            cell_size,
+        });
+
+        // 3. Multi-ring bio shockwaves
+        // Emerald primary expansion ring
+        self.spawn_shockwave(
+            to_x,
+            to_y,
+            Color::from_rgba(0, 230, 118, 255),
+            cell_size * 1.35,
+        );
+        // Mint secondary fast shockwave
+        self.spawn_shockwave(
+            to_x,
+            to_y,
+            Color::from_rgba(105, 240, 174, 255),
+            cell_size * 0.9,
+        );
+        // White-hot core flash
+        self.spawn_shockwave(
+            to_x,
+            to_y,
+            Color::from_rgba(255, 255, 255, 230),
+            cell_size * 0.45,
+        );
+        // Parent cell mitosis ripple recoil
+        self.spawn_shockwave(
+            from_x,
+            from_y,
+            Color::from_rgba(0, 230, 118, 180),
+            cell_size * 0.75,
+        );
+
+        // 4. Directional spore ejection stream (parent -> child)
+        let dx = to_x - from_x;
+        let dy = to_y - from_y;
+        let len = (dx * dx + dy * dy).sqrt().max(0.001);
+        let dir_x = dx / len;
+        let dir_y = dy / len;
+        let perp_x = -dir_y;
+        let perp_y = dir_x;
+
+        for _ in 0..16 {
+            let t = rand::gen_range(0.0, 1.0);
+            let px = from_x + dx * t + perp_x * rand::gen_range(-6.0, 6.0);
+            let py = from_y + dy * t + perp_y * rand::gen_range(-6.0, 6.0);
+            let speed = rand::gen_range(40.0, 130.0);
+            let spread = rand::gen_range(-0.5, 0.5);
+            let vx = (dir_x + perp_x * spread) * speed;
+            let vy = (dir_y + perp_y * spread) * speed;
+            let life = rand::gen_range(0.3, 0.6);
+
+            let colors = [
+                Color::from_rgba(0, 230, 118, 255),
+                Color::from_rgba(105, 240, 174, 255),
+                Color::from_rgba(174, 234, 0, 255),
+                Color::from_rgba(255, 255, 255, 255),
+            ];
+            let color = colors[rand::gen_range(0, colors.len())];
+
+            self.particles.push(Particle {
+                x: px,
+                y: py,
+                vx,
+                vy,
+                radius: rand::gen_range(2.5, 5.0),
+                color,
+                life,
+                max_life: life,
+            });
+        }
+
+        // 5. Radial spore explosion at destination
+        self.spawn_burst(to_x, to_y, Color::from_rgba(0, 230, 118, 255), 18);
+        self.spawn_burst(to_x, to_y, Color::from_rgba(105, 240, 174, 255), 14);
+        self.spawn_burst(to_x, to_y, Color::from_rgba(174, 234, 0, 255), 10);
+        self.spawn_burst(to_x, to_y, Color::from_rgba(255, 255, 255, 255), 8);
+    }
+
     pub fn update_fx(&mut self, dt: f32) {
         for p in self.particles.iter_mut() {
             p.x += p.vx * dt;
@@ -106,6 +213,16 @@ impl Hud {
             sw.alpha -= dt * 1.8;
         }
         self.shockwaves.retain(|sw| sw.alpha > 0.0);
+
+        for b in self.clone_bridges.iter_mut() {
+            b.life -= dt;
+        }
+        self.clone_bridges.retain(|b| b.life > 0.0);
+
+        for cb in self.cell_births.iter_mut() {
+            cb.life -= dt;
+        }
+        self.cell_births.retain(|cb| cb.life > 0.0);
     }
 
     pub fn draw_and_handle_input(&mut self, state: &mut GameState) -> Option<SoundTrigger> {
@@ -1022,7 +1139,16 @@ impl Hud {
             }
         }
 
-        // 9. Particle FX & Blast Shockwaves
+        // 9. Particle FX, Mitosis Bridges & Blast Shockwaves
+        for event in &state.newly_cloned_this_step {
+            let from_cx = gx + (event.from.1 as f32 + 0.5) * cell_size;
+            let from_cy = gy + (event.from.0 as f32 + 0.5) * cell_size;
+            let to_cx = gx + (event.to.1 as f32 + 0.5) * cell_size;
+            let to_cy = gy + (event.to.0 as f32 + 0.5) * cell_size;
+            self.spawn_clone_fx(from_cx, from_cy, to_cx, to_cy, cell_size);
+        }
+        state.newly_cloned_this_step.clear();
+
         for &(r, c) in &state.newly_starved_this_step {
             let cx = gx + (c as f32 + 0.5) * cell_size;
             let cy = gy + (r as f32 + 0.5) * cell_size;
@@ -1033,13 +1159,133 @@ impl Hud {
             self.spawn_burst(cx, cy, Color::from_rgba(255, 234, 0, 255), 16);
         }
         state.newly_starved_this_step.clear();
-        state.newly_infected_this_step.clear();
 
+        // 9a. Draw Mitosis Bridges / Protoplasmic Streams
+        for b in &self.clone_bridges {
+            let progress = (1.0 - (b.life / b.max_life)).clamp(0.0, 1.0);
+            let alpha = (b.life / b.max_life).clamp(0.0, 1.0);
+
+            // Tendril reaches full distance quickly then dissipates
+            let reach = (progress / 0.3).min(1.0);
+            let current_to_x = b.from_x + (b.to_x - b.from_x) * reach;
+            let current_to_y = b.from_y + (b.to_y - b.from_y) * reach;
+
+            let pulse = (t * 12.0).sin() * 0.5 + 0.5;
+
+            // Outer glowing emerald halo
+            draw_line(
+                b.from_x,
+                b.from_y,
+                current_to_x,
+                current_to_y,
+                (9.0 + 3.0 * pulse) * scale,
+                Color::new(0.0, 0.9, 0.46, alpha * (0.5 + 0.4 * pulse)),
+            );
+
+            // Mid neon core
+            draw_line(
+                b.from_x,
+                b.from_y,
+                current_to_x,
+                current_to_y,
+                4.5 * scale,
+                Color::new(0.41, 0.94, 0.68, alpha * 0.9),
+            );
+
+            // Inner white-hot filament
+            draw_line(
+                b.from_x,
+                b.from_y,
+                current_to_x,
+                current_to_y,
+                1.8 * scale,
+                Color::new(1.0, 1.0, 1.0, alpha),
+            );
+
+            // Flowing bio-globules traveling along bridge
+            for i in 0..3 {
+                let globule_phase = (progress * 2.2 + i as f32 * 0.33) % 1.0;
+                if globule_phase <= reach {
+                    let gx_pos = b.from_x + (b.to_x - b.from_x) * globule_phase;
+                    let gy_pos = b.from_y + (b.to_y - b.from_y) * globule_phase;
+                    let globule_r = (3.0 + 1.5 * pulse) * scale * alpha;
+                    draw_circle(
+                        gx_pos,
+                        gy_pos,
+                        globule_r * 1.6,
+                        Color::new(0.0, 0.9, 0.46, alpha * 0.6),
+                    );
+                    draw_circle(
+                        gx_pos,
+                        gy_pos,
+                        globule_r,
+                        Color::new(0.68, 1.0, 0.85, alpha),
+                    );
+                    draw_circle(
+                        gx_pos,
+                        gy_pos,
+                        globule_r * 0.5,
+                        Color::new(1.0, 1.0, 1.0, alpha),
+                    );
+                }
+            }
+        }
+
+        // 9b. Draw Cell Birth Elastic Swell & Glow
+        for cb in &self.cell_births {
+            let progress = (1.0 - (cb.life / cb.max_life)).clamp(0.0, 1.0);
+            let alpha = (cb.life / cb.max_life).clamp(0.0, 1.0);
+
+            // Elastic pop curve: rapid expansion up to 1.35x, then springy settle to 1.0x
+            let scale_factor = if progress < 0.4 {
+                let p = progress / 0.4;
+                (1.0 - (1.0 - p).powi(3)) * 1.35
+            } else {
+                let p = (progress - 0.4) / 0.6;
+                1.0 + 0.35 * (1.0 - p) * (p * std::f32::consts::PI * 2.0).cos()
+            };
+
+            let birth_r = (cb.cell_size * 0.32) * scale_factor;
+
+            // Radiant flash halo
+            let flash_alpha = (alpha * 1.5).min(1.0);
+            draw_circle(
+                cb.cx,
+                cb.cy,
+                birth_r * 1.6,
+                Color::new(0.0, 0.9, 0.46, flash_alpha * 0.4),
+            );
+            draw_circle(
+                cb.cx,
+                cb.cy,
+                birth_r * 1.25,
+                Color::new(0.41, 0.94, 0.68, flash_alpha * 0.7),
+            );
+            draw_circle(
+                cb.cx,
+                cb.cy,
+                birth_r,
+                Color::new(0.85, 1.0, 0.9, flash_alpha),
+            );
+
+            // High-speed spinning birth spore pods
+            for i in 0..4 {
+                let angle = progress * 10.0 + (i as f32 * std::f32::consts::TAU / 4.0);
+                let pod_dist = birth_r * 0.7;
+                let px = cb.cx + angle.cos() * pod_dist;
+                let py = cb.cy + angle.sin() * pod_dist;
+                draw_circle(px, py, birth_r * 0.3, Color::new(0.0, 1.0, 0.5, alpha));
+                draw_circle(px, py, birth_r * 0.15, Color::new(1.0, 1.0, 1.0, alpha));
+            }
+        }
+
+        // 9c. Shockwaves
         for sw in &self.shockwaves {
             let color = Color::new(sw.color.r, sw.color.g, sw.color.b, sw.alpha.clamp(0.0, 1.0));
             draw_circle_lines(sw.cx, sw.cy, sw.radius, 4.0 * scale, color);
         }
 
+        // 9d. Particle Bursts & Spores
         for p in &self.particles {
             let alpha = (p.life / p.max_life).clamp(0.0, 1.0);
             let color = Color::new(p.color.r, p.color.g, p.color.b, alpha);

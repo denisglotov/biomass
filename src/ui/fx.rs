@@ -21,3 +21,22 @@ pub struct Shockwave {
     pub color: Color,
     pub alpha: f32,
 }
+
+#[derive(Debug, Clone)]
+pub struct CloneBridge {
+    pub from_x: f32,
+    pub from_y: f32,
+    pub to_x: f32,
+    pub to_y: f32,
+    pub life: f32,
+    pub max_life: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct CellBirthEffect {
+    pub cx: f32,
+    pub cy: f32,
+    pub life: f32,
+    pub max_life: f32,
+    pub cell_size: f32,
+}

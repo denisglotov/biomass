@@ -1,4 +1,4 @@
-use super::bfs::{evaluate_sealed_enclosure_dieoff, expand_biomass_step_by_step};
+use super::bfs::{evaluate_sealed_enclosure_dieoff, expand_biomass_step_by_step, CloneEvent};
 use super::grid::{CellType, Edge, EdgeState, Grid};
 use super::level::{get_levels, Level};
 use super::storage::{load_last_level_reached, save_last_level_reached};
@@ -24,10 +24,10 @@ pub struct GameState {
 
     // Animation state
     pub anim_timer: f32,
-    pub expansion_steps: Vec<Vec<(usize, usize)>>,
+    pub expansion_steps: Vec<Vec<CloneEvent>>,
     pub current_anim_step: usize,
     pub dying_biomass: Vec<(usize, usize)>,
-    pub newly_infected_this_step: Vec<(usize, usize)>,
+    pub newly_cloned_this_step: Vec<CloneEvent>,
     pub newly_starved_this_step: Vec<(usize, usize)>,
 
     // End-of-level stats
@@ -55,7 +55,7 @@ impl GameState {
             expansion_steps: Vec::new(),
             current_anim_step: 0,
             dying_biomass: Vec::new(),
-            newly_infected_this_step: Vec::new(),
+            newly_cloned_this_step: Vec::new(),
             newly_starved_this_step: Vec::new(),
             star_rating: 3,
         }
@@ -83,7 +83,7 @@ impl GameState {
         self.expansion_steps.clear();
         self.current_anim_step = 0;
         self.dying_biomass.clear();
-        self.newly_infected_this_step.clear();
+        self.newly_cloned_this_step.clear();
         self.newly_starved_this_step.clear();
         self.anim_timer = 0.0;
         self.star_rating = 3;
@@ -144,9 +144,10 @@ impl GameState {
 
     fn apply_all_expansion(&mut self) {
         for step in &self.expansion_steps {
-            for &(r, c) in step {
-                self.grid.set_cell(r, c, CellType::Biomass);
-                self.newly_infected_this_step.push((r, c));
+            for event in step {
+                self.grid
+                    .set_cell(event.to.0, event.to.1, CellType::Biomass);
+                self.newly_cloned_this_step.push(*event);
             }
         }
     }
@@ -162,9 +163,10 @@ impl GameState {
                 if self.anim_timer >= step_duration {
                     self.anim_timer = 0.0;
                     if self.current_anim_step < self.expansion_steps.len() {
-                        for &(r, c) in &self.expansion_steps[self.current_anim_step] {
-                            self.grid.set_cell(r, c, CellType::Biomass);
-                            self.newly_infected_this_step.push((r, c));
+                        for event in &self.expansion_steps[self.current_anim_step] {
+                            self.grid
+                                .set_cell(event.to.0, event.to.1, CellType::Biomass);
+                            self.newly_cloned_this_step.push(*event);
                         }
                         sound_trigger = Some(SoundTrigger::BiomassTick);
                         self.current_anim_step += 1;
