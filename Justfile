@@ -14,6 +14,8 @@ run:
 # Build release WebAssembly target and copy WASM binary to web directory
 build-wasm:
     cargo build --target wasm32-unknown-unknown --release
+
+install-wasm: build-wasm
     cp target/wasm32-unknown-unknown/release/biomass.wasm web/biomass.wasm
     @test -L web/assets || ln -s ../assets web/assets
 
