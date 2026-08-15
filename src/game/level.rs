@@ -20,17 +20,17 @@ impl Level {
     pub fn create_initial_grid(&self) -> Grid {
         let mut grid = Grid::new(self.rows, self.cols);
 
-        for &(r, c) in &self.obstacles {
-            grid.set_cell(r, c, super::grid::CellType::Obstacle);
-        }
+        self.obstacles
+            .iter()
+            .for_each(|&(r, c)| grid.set_cell(r, c, super::grid::CellType::Obstacle));
 
-        for &(r, c) in &self.initial_biomass {
-            grid.set_cell(r, c, super::grid::CellType::Biomass);
-        }
+        self.initial_biomass
+            .iter()
+            .for_each(|&(r, c)| grid.set_cell(r, c, super::grid::CellType::Biomass));
 
-        for &edge in &self.initial_walls {
-            grid.set_edge(edge, super::grid::EdgeState::Wall);
-        }
+        self.initial_walls
+            .iter()
+            .for_each(|&edge| grid.set_edge(edge, super::grid::EdgeState::Wall));
 
         grid
     }

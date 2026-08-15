@@ -152,12 +152,10 @@ impl GameState {
     }
 
     fn apply_all_expansion(&mut self) {
-        for step in &self.expansion_steps {
-            for event in step {
-                self.grid
-                    .set_cell(event.to.0, event.to.1, CellType::Biomass);
-                self.newly_cloned_this_step.push(*event);
-            }
+        for event in self.expansion_steps.iter().flatten() {
+            self.grid
+                .set_cell(event.to.0, event.to.1, CellType::Biomass);
+            self.newly_cloned_this_step.push(*event);
         }
     }
 
@@ -179,8 +177,8 @@ impl GameState {
                     self.anim_timer = 0.0;
                     self.current_anim_step += 1;
 
-                    if self.current_anim_step < self.expansion_steps.len() {
-                        for event in &self.expansion_steps[self.current_anim_step] {
+                    if let Some(events) = self.expansion_steps.get(self.current_anim_step) {
+                        for event in events {
                             self.grid
                                 .set_cell(event.to.0, event.to.1, CellType::Biomass);
                             self.newly_cloned_this_step.push(*event);
@@ -193,9 +191,9 @@ impl GameState {
             }
             GamePhase::IsolationCheck => {
                 // Apply starvation deactivation
-                for &(r, c) in &self.dying_biomass {
-                    self.grid.set_cell(r, c, CellType::Empty);
-                }
+                self.dying_biomass
+                    .iter()
+                    .for_each(|&(r, c)| self.grid.set_cell(r, c, CellType::Empty));
 
                 if !self.dying_biomass.is_empty() {
                     sound_trigger = Some(SoundTrigger::IsolationPop);

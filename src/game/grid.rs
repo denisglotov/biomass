@@ -142,41 +142,23 @@ impl Grid {
 
         match edge {
             Edge::Horizontal { r, c } => {
-                if r == 0 || r == self.rows {
-                    return false; // Outer boundary
-                }
-                // Cannot place wall if both adjacent cells are Obstacle
-                let cell_above = self.get_cell(r - 1, c);
-                let cell_below = self.get_cell(r, c);
-                cell_above != CellType::Obstacle || cell_below != CellType::Obstacle
+                (r > 0 && r < self.rows)
+                    && (self.get_cell(r - 1, c) != CellType::Obstacle
+                        || self.get_cell(r, c) != CellType::Obstacle)
             }
             Edge::Vertical { r, c } => {
-                if c == 0 || c == self.cols {
-                    return false; // Outer boundary
-                }
-                let cell_left = self.get_cell(r, c - 1);
-                let cell_right = self.get_cell(r, c);
-                cell_left != CellType::Obstacle || cell_right != CellType::Obstacle
+                (c > 0 && c < self.cols)
+                    && (self.get_cell(r, c - 1) != CellType::Obstacle
+                        || self.get_cell(r, c) != CellType::Obstacle)
             }
         }
     }
 
     /// Check if there are any remaining legal wall placements on open passable internal edges
     pub fn has_any_legal_wall_placement(&self) -> bool {
-        for r in 1..self.rows {
-            for c in 0..self.cols {
-                if self.can_place_wall(Edge::Horizontal { r, c }) {
-                    return true;
-                }
-            }
-        }
-        for r in 0..self.rows {
-            for c in 1..self.cols {
-                if self.can_place_wall(Edge::Vertical { r, c }) {
-                    return true;
-                }
-            }
-        }
-        false
+        (1..self.rows)
+            .any(|r| (0..self.cols).any(|c| self.can_place_wall(Edge::Horizontal { r, c })))
+            || (0..self.rows)
+                .any(|r| (1..self.cols).any(|c| self.can_place_wall(Edge::Vertical { r, c })))
     }
 }
