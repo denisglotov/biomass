@@ -1,6 +1,6 @@
 use super::grid::{CellType, Grid};
 use macroquad::rand::gen_range;
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CloneEvent {
@@ -22,8 +22,13 @@ pub fn expand_biomass_step_by_step(
         return steps_history;
     }
 
-    let mut current_biomass: HashSet<(usize, usize)> = grid.active_biomass.clone();
-    let mut infected_this_turn: HashSet<(usize, usize)> = HashSet::new();
+    let cell_count = grid.rows * grid.cols;
+    let mut current_biomass_map = vec![false; cell_count];
+    for &(r, c) in &grid.active_biomass {
+        current_biomass_map[grid.cell_idx(r, c)] = true;
+    }
+    let mut infected_this_turn_map = vec![false; cell_count];
+    let mut biomass_list: Vec<(usize, usize)> = grid.active_biomass.iter().copied().collect();
     let mut total_clones = 0;
 
     for _step in 0..max_steps {
@@ -31,10 +36,6 @@ pub fn expand_biomass_step_by_step(
             break;
         }
 
-        let mut step_newly_infected = Vec::new();
-        let mut frontier: Vec<(usize, usize)> = Vec::new();
-
-        let mut biomass_list: Vec<(usize, usize)> = current_biomass.iter().copied().collect();
         // Randomize biomass cell processing order so priority is fair
         if biomass_list.len() > 1 {
             for i in (1..biomass_list.len()).rev() {
@@ -43,26 +44,36 @@ pub fn expand_biomass_step_by_step(
             }
         }
 
+        let mut step_newly_infected = Vec::new();
+        let mut frontier = Vec::new();
+
         for &(r, c) in &biomass_list {
             if total_clones >= max_clones {
                 break;
             }
 
-            let candidates: Vec<_> = grid
-                .valid_neighbors(r, c)
-                .filter(|&(nr, nc)| {
-                    grid.get_cell(nr, nc) == CellType::Empty
-                        && !current_biomass.contains(&(nr, nc))
-                        && !infected_this_turn.contains(&(nr, nc))
-                        && !grid.has_wall_between(r, c, nr, nc)
-                })
-                .collect();
+            // Stack-allocated candidate collection avoiding per-neighbor heap allocation
+            let mut candidates = [(0, 0); 4];
+            let mut count = 0;
 
-            if !candidates.is_empty() {
-                let idx = gen_range(0, candidates.len());
+            for (nr, nc) in grid.valid_neighbors(r, c) {
+                let n_idx = grid.cell_idx(nr, nc);
+                if grid.get_cell(nr, nc) == CellType::Empty
+                    && !current_biomass_map[n_idx]
+                    && !infected_this_turn_map[n_idx]
+                    && !grid.has_wall_between(r, c, nr, nc)
+                {
+                    candidates[count] = (nr, nc);
+                    count += 1;
+                }
+            }
+
+            if count > 0 {
+                let idx = gen_range(0, count);
                 let (target_r, target_c) = candidates[idx];
+                let t_idx = grid.cell_idx(target_r, target_c);
 
-                infected_this_turn.insert((target_r, target_c));
+                infected_this_turn_map[t_idx] = true;
                 step_newly_infected.push(CloneEvent {
                     from: (r, c),
                     to: (target_r, target_c),
@@ -77,7 +88,8 @@ pub fn expand_biomass_step_by_step(
         }
 
         for &(nr, nc) in &frontier {
-            current_biomass.insert((nr, nc));
+            current_biomass_map[grid.cell_idx(nr, nc)] = true;
+            biomass_list.push((nr, nc));
         }
 
         steps_history.push(step_newly_infected);
@@ -91,17 +103,21 @@ pub fn expand_biomass_step_by_step(
 /// to ANY `CellType::Empty` cell on the grid.
 /// Returns a list of cell coordinates `(r, c)` that deactivate (die off).
 pub fn evaluate_sealed_enclosure_dieoff(grid: &Grid) -> Vec<(usize, usize)> {
-    let mut visited = HashSet::new();
-    let mut starved_cells = Vec::new();
+    let mut visited = vec![false; grid.rows * grid.cols];
 
-    for &(r, c) in &grid.active_biomass {
-        if !visited.contains(&(r, c)) {
+    grid.active_biomass
+        .iter()
+        .copied()
+        .filter_map(|root| {
+            let root_idx = grid.cell_idx(root.0, root.1);
+            if visited[root_idx] {
+                return None;
+            }
+            visited[root_idx] = true;
+
             let mut component = Vec::new();
-            let mut queue = VecDeque::new();
+            let mut queue = VecDeque::from([root]);
             let mut has_access_to_empty = false;
-
-            queue.push_back((r, c));
-            visited.insert((r, c));
 
             while let Some((cr, cc)) = queue.pop_front() {
                 component.push((cr, cc));
@@ -116,8 +132,9 @@ pub fn evaluate_sealed_enclosure_dieoff(grid: &Grid) -> Vec<(usize, usize)> {
                             has_access_to_empty = true;
                         }
                         CellType::Biomass => {
-                            if !visited.contains(&(nr, nc)) {
-                                visited.insert((nr, nc));
+                            let n_idx = grid.cell_idx(nr, nc);
+                            if !visited[n_idx] {
+                                visited[n_idx] = true;
                                 queue.push_back((nr, nc));
                             }
                         }
@@ -126,13 +143,10 @@ pub fn evaluate_sealed_enclosure_dieoff(grid: &Grid) -> Vec<(usize, usize)> {
                 }
             }
 
-            if !has_access_to_empty {
-                starved_cells.extend(component);
-            }
-        }
-    }
-
-    starved_cells
+            (!has_access_to_empty).then_some(component)
+        })
+        .flatten()
+        .collect()
 }
 
 #[cfg(test)]
