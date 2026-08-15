@@ -121,6 +121,7 @@ jobs:
           path: |
             target/android-artifacts/release/apk/biomass.apk
             target/android-artifacts/release/apk/biomass.aab
+            target/android-artifacts/release/apk/mapping.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -129,6 +130,7 @@ jobs:
           files: |
             target/android-artifacts/release/apk/biomass.apk
             target/android-artifacts/release/apk/biomass.aab
+            target/android-artifacts/release/apk/mapping.txt
           generate_release_notes: true
           draft: false
           prerelease: false
