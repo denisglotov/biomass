@@ -507,7 +507,7 @@ impl Hud {
         let stats_y = header_h;
         self.draw_stats_bar(state, screen_w, stats_y, stats_h, scale);
 
-        // 4. Draw Level Description Banner
+        // 4. Draw Level Banner
         let level_banner_y = stats_y + stats_h;
         self.draw_level_banner(state, screen_w, level_banner_y, scale);
 
@@ -695,8 +695,8 @@ impl Hud {
     }
 
     fn draw_level_banner(&self, state: &GameState, screen_w: f32, y: f32, scale: f32) {
-        let text = format!("☣ {} — {}", state.level.title, state.level.description);
-        let mut font_size = 22.0 * scale;
+        let text = format!("☣ {}", state.level.title);
+        let mut font_size = 26.0 * scale;
         let mut dimensions = self.measure_text_str(&text, font_size);
 
         // Dynamically shrink font size if text is too wide for screen
@@ -715,7 +715,7 @@ impl Hud {
         self.draw_text_str(
             &text,
             draw_x.max(box_x + 8.0),
-            y + box_h * 0.68,
+            y + box_h * 0.70,
             font_size,
             Color::from_rgba(255, 255, 255, 255),
         );
