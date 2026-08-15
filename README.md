@@ -1,8 +1,10 @@
 # Biomass - Sci-Fi Turn-Based Containment Strategy Game
 
-**Biomass** is a tactical turn-based strategy puzzle game built entirely in **Rust** using **Macroquad** and compiled to **WebAssembly** (`wasm32-unknown-unknown`).
+**Biomass** is a tactical turn-based strategy puzzle game built in **Rust** using **Macroquad**, supporting
+**WebAssembly** (`wasm32-unknown-unknown`), **Desktop**, and **Android**.
 
-The player commands facility containment forces on a 2D grid to trap, isolate, and neutralize expanding sci-fi bio-hazards before grid capacity limits are breached.
+The player commands facility containment forces on a 2D grid to trap, isolate, and neutralize expanding sci-fi
+bio-hazards before grid capacity limits are breached.
 
 ---
 
@@ -19,13 +21,12 @@ The player commands facility containment forces on a 2D grid to trap, isolate, a
    - Place up to $N_{\text{walls}}$ barricade walls on open passable edges per turn.
    - Walls placed during the current turn appear in **Hazard Amber ("In-Construction")** state with an animated construction aura.
    - Click an **in-construction wall** again to remove it and refund the wall point.
-   - Includes **Undo Wall Placement** (`Z`) and **Reset Level** (`R`).
-   - Press **End Turn** (Space) or auto-advance when all walls for the step are set.
+   - Turns automatically advance to the Biomass phase once all allocated walls for the turn are deployed.
 
 2. **Biomass Phase (Spread Expansion)**
    - Each active biomass cell produces **one new cell per step** (randomly into an adjacent free cell unblocked by walls or obstacles).
-   - Infection expands up to $N_{\text{steps}}$ distance per turn.
-   - Animated step-by-step with speed controls (**1x**, **2x**, **Skip**).
+   - Infection expands up to $N_{\text{steps}}$ distance per turn, capped at a maximum clone budget ($2 \times N_{\text{walls}}$).
+   - Step-by-step visual simulation featuring viscous fluid droplet jumps, mitosis shockwaves, and surface splatter beads.
 
 3. **Isolation Phase (Die-off via Sealed Enclosure Rule)**
    - Evaluates connected components of biomass across passable edges.
@@ -33,14 +34,14 @@ The player commands facility containment forces on a 2D grid to trap, isolate, a
    - When trapped inside a wall enclosure with no free empty cells left to infect, the biomass starves and deactivates.
 
 ### Terminal Conditions
-- **Victory**: All active biomass cells are deactivated (0 remaining on grid). Calculates 1-3 star performance rating based on turns taken.
+- **Victory**: All active biomass cells are deactivated (0 remaining on grid). Calculates a 1-3 star performance rating based on turns taken.
 - **Defeat**: Biomass count reaches/exceeds `MaxThreshold` OR no legal wall placement remains while active biomass exists.
 
 ---
 
 ## 🛠️ Quickstart with Justfile
 
-This repository uses [`just`](Justfile) for all build, run, and testing workflows.
+This repository uses [`Justfile`](Justfile) for all build, run, and testing workflows.
 
 ### Prerequisites
 - [Rust toolchain](https://rustup.rs/) (1.80+)
@@ -53,19 +54,26 @@ This repository uses [`just`](Justfile) for all build, run, and testing workflow
 # List all available recipes
 just
 
-# Build release WebAssembly target (creates biomass.wasm in root)
+# Run the native desktop application
+just run
+
+# Build release WebAssembly target
 just build-wasm
+
+# Install WASM binary to web directory
+just install-wasm
 
 # Serve the WebAssembly game locally on http://localhost:8080
 just serve
 
-# Run code formatting check
-just fmt-check
+# Run unit tests
+just test
 
-# Run strict Clippy lints
+# Check formatting and Clippy lints
+just fmt-check
 just clippy
 
-# Run full CI validation suite (formatting, clippy, WASM build)
+# Run complete CI test suite (formatting, clippy, tests, WASM build)
 just ci
 ```
 
@@ -80,9 +88,7 @@ just ci
 
 ### Continuous Integration (GitHub Actions)
 
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and
-`pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, and
-WebAssembly compilation.
+Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, unit tests, and WebAssembly compilation.
 
 ---
 
@@ -99,13 +105,11 @@ brew install --cask android-commandlinetools
 sdkmanager "platforms;android-35" "ndk;26.1.10909125" "build-tools;35.0.0"
 ```
 
-> The minimum tested NDK version is **r26**. NDK r26+ ships LLVM-only toolchains
-> (no legacy GNU binutils). `cargo-quad-apk` from git handles this correctly.
+> The minimum tested NDK version is **r26**. NDK r26+ ships LLVM-only toolchains (no legacy GNU binutils). `cargo-quad-apk` from git handles this correctly.
 
 **cargo-quad-apk (from git — required)**
 
-The published crates.io version (`0.1.4`, 2022) does not support NDK r26+, JDK 17+,
-or Android API 31+ manifest requirements. Install from the upstream git repo instead:
+The published crates.io version (`0.1.4`, 2022) does not support NDK r26+, JDK 17+, or Android API 31+ manifest requirements. Install from the upstream git repo instead:
 
 ```bash
 git clone https://github.com/not-fl3/cargo-quad-apk
@@ -118,7 +122,7 @@ cargo install --path ./cargo-quad-apk --force
 rustup target add aarch64-linux-android
 ```
 
-**JDK+**
+**JDK**
 
 ```bash
 brew install --cask temurin@21  # or any JDK 17+
@@ -176,10 +180,9 @@ adb -s <device-serial> shell am start -n org.dymka.biomass/.MainActivity
 adb -s <device-serial> logcat -s biomass
 ```
 
-### Cargo.toml Android metadata
+### Cargo.toml Android Metadata
 
-The Android package name, version, and target API are configured in [`Cargo.toml`](Cargo.toml)
-under the `[package.metadata.android]` section.
+The Android package name, version, and target API are configured in [`Cargo.toml`](Cargo.toml) under the `[package.metadata.android]` section.
 
 ---
 
