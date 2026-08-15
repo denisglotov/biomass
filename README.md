@@ -86,11 +86,14 @@ Run the complete automated quality suite locally:
 just ci
 ```
 
-### Continuous Integration (GitHub Actions)
+### Continuous Integration & Releases (GitHub Actions)
 
-Continuous integration is configured via [`.github/workflows/lint.yml`](.github/workflows/lint.yml). On every `push` and `pull_request`, GitHub Actions installs `just` and executes `just ci` to verify formatting, Clippy lints, unit tests, and WebAssembly compilation.
-
----
+- **CI Suite ([`.github/workflows/lint.yml`](.github/workflows/lint.yml))**: On every `push` and `pull_request` to
+  `master`, runs formatting (`rustfmt`), Clippy lints, unit tests, and WebAssembly build.
+- **Android Release Pipeline ([`.github/workflows/release.yml`](.github/workflows/release.yml))**: On every version tag
+  push (`v*`) or manual `workflow_dispatch`, builds, packages, and signs both the release Android APK and App Bundle
+  (`.aab`), uploading them to a GitHub Release with auto-generated release notes.
+  - Required Secrets / Variables: `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEYSTORE_ALIAS`.
 
 ## 📱 Building for Android
 

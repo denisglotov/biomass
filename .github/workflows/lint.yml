@@ -2,9 +2,9 @@ name: Rust Code Quality & Build
 
 on:
   push:
-    branches: [ rust-macroquad, master ]
+    branches: [ master ]
   pull_request:
-    branches: [ rust-macroquad, master ]
+    branches: [ master ]
 
 jobs:
   ci:
