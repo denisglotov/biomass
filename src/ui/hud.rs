@@ -168,12 +168,7 @@ impl Hud {
         });
 
         // Wet impact shockwaves
-        self.spawn_shockwave(
-            cx,
-            cy,
-            Color::from_rgba(0, 230, 118, 220),
-            cell_size * 1.2,
-        );
+        self.spawn_shockwave(cx, cy, Color::from_rgba(0, 230, 118, 220), cell_size * 1.2);
         self.spawn_shockwave(
             cx,
             cy,
@@ -851,8 +846,12 @@ impl Hud {
                         );
                     }
                     CellType::Biomass => {
-                        let active_target_jump = self.wet_jumps.iter().find(|j| j.to_r == r && j.to_c == c);
-                        let active_parent_jump = self.wet_jumps.iter().find(|j| j.from_r == r && j.from_c == c);
+                        let active_target_jump =
+                            self.wet_jumps.iter().find(|j| j.to_r == r && j.to_c == c);
+                        let active_parent_jump = self
+                            .wet_jumps
+                            .iter()
+                            .find(|j| j.from_r == r && j.from_c == c);
 
                         let (is_in_flight, bloom_s) = if let Some(jump) = active_target_jump {
                             let prog = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
@@ -926,16 +925,20 @@ impl Hud {
 
                             // Elastic bloom scale for newly landing cell
                             let growth_scale = if bloom_s < 1.0 {
-                                (1.0 - (-5.0 * bloom_s).exp() * (std::f32::consts::PI * 2.5 * bloom_s).cos()).max(0.0)
+                                (1.0 - (-5.0 * bloom_s).exp()
+                                    * (std::f32::consts::PI * 2.5 * bloom_s).cos())
+                                .max(0.0)
                             } else {
                                 1.0
                             };
 
                             // Parent cell recoil pulse
                             let parent_pulse = if let Some(p_jump) = active_parent_jump {
-                                let p_prog = (1.0 - (p_jump.life / p_jump.max_life)).clamp(0.0, 1.0);
+                                let p_prog =
+                                    (1.0 - (p_jump.life / p_jump.max_life)).clamp(0.0, 1.0);
                                 if p_prog < 0.35 {
-                                    ((1.0 - p_prog / 0.35) * std::f32::consts::PI).sin() * (-3.0 * scale)
+                                    ((1.0 - p_prog / 0.35) * std::f32::consts::PI).sin()
+                                        * (-3.0 * scale)
                                 } else {
                                     0.0
                                 }
@@ -945,7 +948,8 @@ impl Hud {
 
                             let center_x = cx + cell_size / 2.0;
                             let center_y = cy + cell_size / 2.0;
-                            let pulse = (t * 4.0 + (r + c) as f32).sin() * (2.5 * scale) + parent_pulse;
+                            let pulse =
+                                (t * 4.0 + (r + c) as f32).sin() * (2.5 * scale) + parent_pulse;
                             let base_r = (cell_size * 0.28 + pulse) * growth_scale;
                             let core_alpha = (bloom_s * 2.0).min(1.0);
 
@@ -969,7 +973,9 @@ impl Hud {
                             );
 
                             for i in 0..4 {
-                                let angle = t * 2.8 + (i as f32 * std::f32::consts::TAU / 4.0) + (1.0 - bloom_s) * 4.0;
+                                let angle = t * 2.8
+                                    + (i as f32 * std::f32::consts::TAU / 4.0)
+                                    + (1.0 - bloom_s) * 4.0;
                                 let orbit_radius = base_r * 0.55;
                                 let ox = center_x + angle.cos() * orbit_radius;
                                 let oy = center_y + angle.sin() * orbit_radius;
@@ -1408,21 +1414,32 @@ impl Hud {
                     for i in 1..=steps {
                         let u = i as f32 / steps as f32;
                         let ux = jump.from_x + (drop_x - jump.from_x) * u;
-                        let uy = jump.from_y + (drop_y - jump.from_y) * u - (arc_h * 0.5) * (4.0 * u * (1.0 - u)) * neck_fade;
+                        let uy = jump.from_y + (drop_y - jump.from_y) * u
+                            - (arc_h * 0.5) * (4.0 * u * (1.0 - u)) * neck_fade;
                         let taper = 1.0 - 0.65 * (4.0 * u * (1.0 - u));
-                        let w = (jump.cell_size * 0.20 * neck_fade * taper * scale).max(1.5 * scale);
+                        let w =
+                            (jump.cell_size * 0.20 * neck_fade * taper * scale).max(1.5 * scale);
                         draw_line(
-                            prev_pt.0, prev_pt.1, ux, uy,
+                            prev_pt.0,
+                            prev_pt.1,
+                            ux,
+                            uy,
                             w * 1.5,
                             Color::new(0.0, 0.9, 0.46, neck_fade * 0.35),
                         );
                         draw_line(
-                            prev_pt.0, prev_pt.1, ux, uy,
+                            prev_pt.0,
+                            prev_pt.1,
+                            ux,
+                            uy,
                             w,
                             Color::new(0.0, 0.9, 0.46, neck_fade * 0.85),
                         );
                         draw_line(
-                            prev_pt.0, prev_pt.1, ux, uy,
+                            prev_pt.0,
+                            prev_pt.1,
+                            ux,
+                            uy,
                             (w * 0.45).max(1.0),
                             Color::new(0.41, 0.94, 0.68, neck_fade * 0.95),
                         );
@@ -1437,14 +1454,31 @@ impl Hud {
                         let tp_flight = (p_flight - lag).max(0.0);
                         let tp = tp_flight * tp_flight * (3.0 - 2.0 * tp_flight);
                         let tx = jump.from_x + (jump.to_x - jump.from_x) * tp;
-                        let ty = jump.from_y + (jump.to_y - jump.from_y) * tp - arc_h * 4.0 * tp * (1.0 - tp);
-                        let bead_r = (jump.cell_size * (0.075 - idx as f32 * 0.022) * scale).max(2.0);
+                        let ty = jump.from_y + (jump.to_y - jump.from_y) * tp
+                            - arc_h * 4.0 * tp * (1.0 - tp);
+                        let bead_r =
+                            (jump.cell_size * (0.075 - idx as f32 * 0.022) * scale).max(2.0);
                         let bead_alpha = (1.0 - lag / 0.28).clamp(0.0, 1.0);
 
-                        draw_circle(tx, ty, bead_r * 1.5, Color::new(0.0, 0.9, 0.46, bead_alpha * 0.35));
+                        draw_circle(
+                            tx,
+                            ty,
+                            bead_r * 1.5,
+                            Color::new(0.0, 0.9, 0.46, bead_alpha * 0.35),
+                        );
                         draw_circle(tx, ty, bead_r, Color::new(0.0, 0.9, 0.46, bead_alpha * 0.9));
-                        draw_circle(tx, ty, bead_r * 0.55, Color::new(0.41, 0.94, 0.68, bead_alpha));
-                        draw_circle(tx - bead_r * 0.3, ty - bead_r * 0.3, (bead_r * 0.3).max(1.0), Color::new(1.0, 1.0, 1.0, bead_alpha * 0.95));
+                        draw_circle(
+                            tx,
+                            ty,
+                            bead_r * 0.55,
+                            Color::new(0.41, 0.94, 0.68, bead_alpha),
+                        );
+                        draw_circle(
+                            tx - bead_r * 0.3,
+                            ty - bead_r * 0.3,
+                            (bead_r * 0.3).max(1.0),
+                            Color::new(1.0, 1.0, 1.0, bead_alpha * 0.95),
+                        );
                     }
                 }
 
@@ -1556,7 +1590,12 @@ impl Hud {
                 let r = (bead.radius * (1.0 - bead_prog * 0.5) * scale).max(1.5);
                 let col = Color::new(bead.color.r, bead.color.g, bead.color.b, alpha);
 
-                draw_circle(bead.x, bead.y, r * 1.4, Color::new(0.0, 0.9, 0.46, alpha * 0.35));
+                draw_circle(
+                    bead.x,
+                    bead.y,
+                    r * 1.4,
+                    Color::new(0.0, 0.9, 0.46, alpha * 0.35),
+                );
                 draw_circle(bead.x, bead.y, r, col);
                 draw_circle(
                     bead.x - r * 0.3,

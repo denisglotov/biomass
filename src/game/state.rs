@@ -167,7 +167,10 @@ impl GameState {
         match self.phase {
             GamePhase::BiomassExpansion => {
                 let step_duration = 0.45;
-                if self.anim_timer == 0.0 && self.current_anim_step == 0 && !self.expansion_steps.is_empty() {
+                if self.anim_timer == 0.0
+                    && self.current_anim_step == 0
+                    && !self.expansion_steps.is_empty()
+                {
                     sound_trigger = Some(SoundTrigger::BiomassTick);
                 }
                 self.anim_timer += dt;
