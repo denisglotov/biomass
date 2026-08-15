@@ -6,6 +6,148 @@ use super::fx::{
     CloneFxParams, Confetti, Particle, Shockwave, SplashBead, WetDropletJump, WetSplash,
 };
 
+const CONFETTI_COLORS: [Color; 7] = [
+    Color::from_rgba(255, 215, 0, 255),   // Radiant Gold
+    Color::from_rgba(0, 230, 118, 255),   // Emerald Green
+    Color::from_rgba(0, 229, 255, 255),   // Neon Cyan
+    Color::from_rgba(255, 64, 129, 255),  // Hot Pink
+    Color::from_rgba(255, 145, 0, 255),   // Electric Orange
+    Color::from_rgba(213, 0, 249, 255),   // Bright Violet
+    Color::from_rgba(255, 255, 255, 255), // Pure White
+];
+
+const SPLASH_COLORS: [Color; 5] = [
+    Color::from_rgba(0, 230, 118, 255),
+    Color::from_rgba(105, 240, 174, 255),
+    Color::from_rgba(174, 234, 0, 255),
+    Color::from_rgba(209, 250, 229, 255),
+    Color::from_rgba(255, 255, 255, 255),
+];
+
+fn draw_empty_tile(cx: f32, cy: f32, cell_size: f32, r: usize, c: usize) {
+    let tile_color = if (r + c).is_multiple_of(2) {
+        Color::from_rgba(248, 250, 252, 255)
+    } else {
+        Color::from_rgba(226, 232, 240, 255)
+    };
+
+    draw_rectangle(
+        cx + 1.0,
+        cy + 1.0,
+        cell_size - 2.0,
+        cell_size - 2.0,
+        tile_color,
+    );
+
+    draw_rectangle_lines(
+        cx + 1.0,
+        cy + 1.0,
+        cell_size - 2.0,
+        cell_size - 2.0,
+        1.0,
+        Color::from_rgba(2, 132, 199, 120),
+    );
+}
+
+fn edge_midpoint(edge: Edge, gx: f32, gy: f32, cell_size: f32) -> (f32, f32) {
+    match edge {
+        Edge::Horizontal { r, c } => (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size),
+        Edge::Vertical { r, c } => (gx + c as f32 * cell_size, gy + (r as f32 + 0.5) * cell_size),
+    }
+}
+
+fn draw_wall_barricade(
+    x1: f32,
+    y1: f32,
+    x2: f32,
+    y2: f32,
+    is_in_construction: bool,
+    t: f32,
+    scale: f32,
+) {
+    if is_in_construction {
+        let shine_phase = (t * 7.5).sin() * 0.5 + 0.5;
+        let main_alpha = (60.0 + 195.0 * shine_phase) as u8;
+        let aura_alpha = (10.0 + 200.0 * shine_phase) as u8;
+        let aura_w = (8.0 + 8.0 * shine_phase) * scale;
+
+        // Outer shining hazard aura
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            aura_w,
+            Color::from_rgba(255, 180, 0, aura_alpha),
+        );
+        // Main hazard yellow line (shines on and off)
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            6.0 * scale,
+            Color::from_rgba(255, (170.0 + 70.0 * shine_phase) as u8, 0, main_alpha),
+        );
+        // Neon yellow-white core
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            2.0 * scale,
+            Color::from_rgba(255, 255, (160.0 + 95.0 * shine_phase) as u8, main_alpha),
+        );
+
+        let node_r = (4.0 + 2.0 * shine_phase) * scale;
+        draw_circle(x1, y1, node_r, Color::from_rgba(255, 191, 0, main_alpha));
+        draw_circle(
+            x1,
+            y1,
+            node_r * 0.5,
+            Color::from_rgba(255, 255, 220, main_alpha),
+        );
+        draw_circle(x2, y2, node_r, Color::from_rgba(255, 191, 0, main_alpha));
+        draw_circle(
+            x2,
+            y2,
+            node_r * 0.5,
+            Color::from_rgba(255, 255, 220, main_alpha),
+        );
+    } else {
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            10.0 * scale,
+            Color::from_rgba(0, 229, 255, 90),
+        );
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            5.0 * scale,
+            Color::from_rgba(0, 200, 230, 255),
+        );
+        draw_line(x1, y1, x2, y2, 2.0 * scale, WHITE);
+
+        draw_circle(x1, y1, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
+        draw_circle(x1, y1, 2.0 * scale, WHITE);
+        draw_circle(x2, y2, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
+        draw_circle(x2, y2, 2.0 * scale, WHITE);
+    }
+}
+
+fn star_rating_str(star_rating: usize) -> &'static str {
+    match star_rating {
+        3 => "⭐ ⭐ ⭐",
+        2 => "⭐ ⭐ ☆",
+        _ => "⭐ ☆ ☆",
+    }
+}
+
 pub struct Hud {
     pub font: Option<Font>,
     pub hovered_edge: Option<Edge>,
@@ -130,13 +272,6 @@ impl Hud {
 
     pub fn spawn_wet_splash(&mut self, cx: f32, cy: f32, cell_size: f32) {
         let mut beads = Vec::new();
-        let colors = [
-            Color::from_rgba(0, 230, 118, 255),
-            Color::from_rgba(105, 240, 174, 255),
-            Color::from_rgba(174, 234, 0, 255),
-            Color::from_rgba(209, 250, 229, 255),
-            Color::from_rgba(255, 255, 255, 255),
-        ];
 
         for _ in 0..16 {
             let angle = rand::gen_range(0.0, std::f32::consts::TAU);
@@ -144,7 +279,7 @@ impl Hud {
             let vx = angle.cos() * speed;
             let vy = angle.sin() * speed - rand::gen_range(20.0, 50.0);
             let life = rand::gen_range(0.24, 0.40);
-            let color = colors[rand::gen_range(0, colors.len())];
+            let color = SPLASH_COLORS[rand::gen_range(0, SPLASH_COLORS.len())];
 
             beads.push(SplashBead {
                 x: cx + angle.cos() * rand::gen_range(1.0, 6.0),
@@ -184,20 +319,11 @@ impl Hud {
     }
 
     pub fn spawn_confetti_burst(&mut self, cx: f32, cy: f32, count: usize, scale: f32) {
-        let colors = [
-            Color::from_rgba(255, 215, 0, 255),   // Radiant Gold
-            Color::from_rgba(0, 230, 118, 255),   // Emerald Green
-            Color::from_rgba(0, 229, 255, 255),   // Neon Cyan
-            Color::from_rgba(255, 64, 129, 255),  // Hot Pink
-            Color::from_rgba(255, 145, 0, 255),   // Electric Orange
-            Color::from_rgba(213, 0, 249, 255),   // Bright Violet
-            Color::from_rgba(255, 255, 255, 255), // Pure White
-        ];
         for _ in 0..count {
             let angle = rand::gen_range(-std::f32::consts::PI * 0.95, -std::f32::consts::PI * 0.05);
             let speed = rand::gen_range(160.0, 480.0) * scale;
             let life = rand::gen_range(2.8, 5.2);
-            let color = colors[rand::gen_range(0, colors.len())];
+            let color = CONFETTI_COLORS[rand::gen_range(0, CONFETTI_COLORS.len())];
             self.confetti.push(Confetti {
                 x: cx,
                 y: cy,
@@ -216,22 +342,13 @@ impl Hud {
     }
 
     pub fn spawn_confetti_rain(&mut self, screen_w: f32, scale: f32, count: usize) {
-        let colors = [
-            Color::from_rgba(255, 215, 0, 255),   // Gold
-            Color::from_rgba(0, 230, 118, 255),   // Emerald
-            Color::from_rgba(0, 229, 255, 255),   // Cyan
-            Color::from_rgba(255, 64, 129, 255),  // Pink
-            Color::from_rgba(255, 145, 0, 255),   // Orange
-            Color::from_rgba(213, 0, 249, 255),   // Violet
-            Color::from_rgba(255, 255, 255, 255), // White
-        ];
         for _ in 0..count {
             let x = rand::gen_range(0.0, screen_w);
             let y = rand::gen_range(-50.0, -10.0);
             let speed_y = rand::gen_range(80.0, 220.0) * scale;
             let speed_x = rand::gen_range(-40.0, 40.0) * scale;
             let life = rand::gen_range(3.5, 6.0);
-            let color = colors[rand::gen_range(0, colors.len())];
+            let color = CONFETTI_COLORS[rand::gen_range(0, CONFETTI_COLORS.len())];
             self.confetti.push(Confetti {
                 x,
                 y,
@@ -822,28 +939,7 @@ impl Hud {
 
                 match cell_type {
                     CellType::Empty => {
-                        let tile_color = if (r + c) % 2 == 0 {
-                            Color::from_rgba(248, 250, 252, 255)
-                        } else {
-                            Color::from_rgba(226, 232, 240, 255)
-                        };
-
-                        draw_rectangle(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            tile_color,
-                        );
-
-                        draw_rectangle_lines(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            1.0,
-                            Color::from_rgba(2, 132, 199, 120),
-                        );
+                        draw_empty_tile(cx, cy, cell_size, r, c);
                     }
                     CellType::Biomass => {
                         let active_target_jump =
@@ -866,43 +962,11 @@ impl Hud {
 
                         if is_in_flight {
                             // Target cell is not yet occupied by biomass (droplet is still airborne)
-                            let tile_color = if (r + c) % 2 == 0 {
-                                Color::from_rgba(248, 250, 252, 255)
-                            } else {
-                                Color::from_rgba(226, 232, 240, 255)
-                            };
-
-                            draw_rectangle(
-                                cx + 1.0,
-                                cy + 1.0,
-                                cell_size - 2.0,
-                                cell_size - 2.0,
-                                tile_color,
-                            );
-
-                            draw_rectangle_lines(
-                                cx + 1.0,
-                                cy + 1.0,
-                                cell_size - 2.0,
-                                cell_size - 2.0,
-                                1.0,
-                                Color::from_rgba(2, 132, 199, 120),
-                            );
+                            draw_empty_tile(cx, cy, cell_size, r, c);
                         } else {
                             if bloom_s < 1.0 {
                                 // Draw base empty checkered tile underneath
-                                let tile_color = if (r + c) % 2 == 0 {
-                                    Color::from_rgba(248, 250, 252, 255)
-                                } else {
-                                    Color::from_rgba(226, 232, 240, 255)
-                                };
-                                draw_rectangle(
-                                    cx + 1.0,
-                                    cy + 1.0,
-                                    cell_size - 2.0,
-                                    cell_size - 2.0,
-                                    tile_color,
-                                );
+                                draw_empty_tile(cx, cy, cell_size, r, c);
                             }
 
                             // Biomass background tile (fades in smoothly with landing)
@@ -1087,20 +1151,13 @@ impl Hud {
             self.draw_edge_highlight(edge, gx, gy, cell_size, cell_size, highlight_color, scale);
 
             if mouse_released && !was_dragging {
+                let (wx, wy) = edge_midpoint(edge, gx, gy, cell_size);
                 if is_in_construction {
                     if state.remove_placed_wall(edge) {
                         self.hovered_edge = None;
                         self.suppressed_hover_edge = Some(edge);
                         sound_trigger = Some(SoundTrigger::WallPlace);
 
-                        let (wx, wy) = match edge {
-                            Edge::Horizontal { r, c } => {
-                                (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size)
-                            }
-                            Edge::Vertical { r, c } => {
-                                (gx + c as f32 * cell_size, gy + (r as f32 + 0.5) * cell_size)
-                            }
-                        };
                         self.spawn_shockwave(
                             wx,
                             wy,
@@ -1112,14 +1169,6 @@ impl Hud {
                 } else if state.walls_left > 0 && state.try_place_wall(edge) {
                     sound_trigger = Some(SoundTrigger::WallPlace);
 
-                    let (wx, wy) = match edge {
-                        Edge::Horizontal { r, c } => {
-                            (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size)
-                        }
-                        Edge::Vertical { r, c } => {
-                            (gx + c as f32 * cell_size, gy + (r as f32 + 0.5) * cell_size)
-                        }
-                    };
                     self.spawn_shockwave(
                         wx,
                         wy,
@@ -1141,100 +1190,7 @@ impl Hud {
                     let wx = gx + c as f32 * cell_size;
                     let wy = gy + r as f32 * cell_size;
                     let is_in_construction = state.placed_walls_this_turn.contains(&edge);
-
-                    if is_in_construction {
-                        let shine_phase = (t * 7.5).sin() * 0.5 + 0.5;
-                        let main_alpha = (60.0 + 195.0 * shine_phase) as u8;
-                        let aura_alpha = (10.0 + 200.0 * shine_phase) as u8;
-                        let aura_w = (8.0 + 8.0 * shine_phase) * scale;
-
-                        // Outer shining hazard aura
-                        draw_line(
-                            wx,
-                            wy,
-                            wx + cell_size,
-                            wy,
-                            aura_w,
-                            Color::from_rgba(255, 180, 0, aura_alpha),
-                        );
-                        // Main hazard yellow line (shines on and off)
-                        draw_line(
-                            wx,
-                            wy,
-                            wx + cell_size,
-                            wy,
-                            6.0 * scale,
-                            Color::from_rgba(
-                                255,
-                                (170.0 + 70.0 * shine_phase) as u8,
-                                0,
-                                main_alpha,
-                            ),
-                        );
-                        // Neon yellow-white core
-                        draw_line(
-                            wx,
-                            wy,
-                            wx + cell_size,
-                            wy,
-                            2.0 * scale,
-                            Color::from_rgba(
-                                255,
-                                255,
-                                (160.0 + 95.0 * shine_phase) as u8,
-                                main_alpha,
-                            ),
-                        );
-
-                        let node_r = (4.0 + 2.0 * shine_phase) * scale;
-                        draw_circle(wx, wy, node_r, Color::from_rgba(255, 191, 0, main_alpha));
-                        draw_circle(
-                            wx,
-                            wy,
-                            node_r * 0.5,
-                            Color::from_rgba(255, 255, 220, main_alpha),
-                        );
-                        draw_circle(
-                            wx + cell_size,
-                            wy,
-                            node_r,
-                            Color::from_rgba(255, 191, 0, main_alpha),
-                        );
-                        draw_circle(
-                            wx + cell_size,
-                            wy,
-                            node_r * 0.5,
-                            Color::from_rgba(255, 255, 220, main_alpha),
-                        );
-                    } else {
-                        draw_line(
-                            wx,
-                            wy,
-                            wx + cell_size,
-                            wy,
-                            10.0 * scale,
-                            Color::from_rgba(0, 229, 255, 90),
-                        );
-                        draw_line(
-                            wx,
-                            wy,
-                            wx + cell_size,
-                            wy,
-                            5.0 * scale,
-                            Color::from_rgba(0, 200, 230, 255),
-                        );
-                        draw_line(wx, wy, wx + cell_size, wy, 2.0 * scale, WHITE);
-
-                        draw_circle(wx, wy, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
-                        draw_circle(wx, wy, 2.0 * scale, WHITE);
-                        draw_circle(
-                            wx + cell_size,
-                            wy,
-                            5.0 * scale,
-                            Color::from_rgba(0, 229, 255, 255),
-                        );
-                        draw_circle(wx + cell_size, wy, 2.0 * scale, WHITE);
-                    }
+                    draw_wall_barricade(wx, wy, wx + cell_size, wy, is_in_construction, t, scale);
                 }
             }
         }
@@ -1246,100 +1202,7 @@ impl Hud {
                     let wx = gx + c as f32 * cell_size;
                     let wy = gy + r as f32 * cell_size;
                     let is_in_construction = state.placed_walls_this_turn.contains(&edge);
-
-                    if is_in_construction {
-                        let shine_phase = (t * 7.5).sin() * 0.5 + 0.5;
-                        let main_alpha = (60.0 + 195.0 * shine_phase) as u8;
-                        let aura_alpha = (10.0 + 200.0 * shine_phase) as u8;
-                        let aura_w = (8.0 + 8.0 * shine_phase) * scale;
-
-                        // Outer shining hazard aura
-                        draw_line(
-                            wx,
-                            wy,
-                            wx,
-                            wy + cell_size,
-                            aura_w,
-                            Color::from_rgba(255, 180, 0, aura_alpha),
-                        );
-                        // Main hazard yellow line (shines on and off)
-                        draw_line(
-                            wx,
-                            wy,
-                            wx,
-                            wy + cell_size,
-                            6.0 * scale,
-                            Color::from_rgba(
-                                255,
-                                (170.0 + 70.0 * shine_phase) as u8,
-                                0,
-                                main_alpha,
-                            ),
-                        );
-                        // Neon yellow-white core
-                        draw_line(
-                            wx,
-                            wy,
-                            wx,
-                            wy + cell_size,
-                            2.0 * scale,
-                            Color::from_rgba(
-                                255,
-                                255,
-                                (160.0 + 95.0 * shine_phase) as u8,
-                                main_alpha,
-                            ),
-                        );
-
-                        let node_r = (4.0 + 2.0 * shine_phase) * scale;
-                        draw_circle(wx, wy, node_r, Color::from_rgba(255, 191, 0, main_alpha));
-                        draw_circle(
-                            wx,
-                            wy,
-                            node_r * 0.5,
-                            Color::from_rgba(255, 255, 220, main_alpha),
-                        );
-                        draw_circle(
-                            wx,
-                            wy + cell_size,
-                            node_r,
-                            Color::from_rgba(255, 191, 0, main_alpha),
-                        );
-                        draw_circle(
-                            wx,
-                            wy + cell_size,
-                            node_r * 0.5,
-                            Color::from_rgba(255, 255, 220, main_alpha),
-                        );
-                    } else {
-                        draw_line(
-                            wx,
-                            wy,
-                            wx,
-                            wy + cell_size,
-                            10.0 * scale,
-                            Color::from_rgba(0, 229, 255, 90),
-                        );
-                        draw_line(
-                            wx,
-                            wy,
-                            wx,
-                            wy + cell_size,
-                            5.0 * scale,
-                            Color::from_rgba(0, 200, 230, 255),
-                        );
-                        draw_line(wx, wy, wx, wy + cell_size, 2.0 * scale, WHITE);
-
-                        draw_circle(wx, wy, 5.0 * scale, Color::from_rgba(0, 229, 255, 255));
-                        draw_circle(wx, wy, 2.0 * scale, WHITE);
-                        draw_circle(
-                            wx,
-                            wy + cell_size,
-                            5.0 * scale,
-                            Color::from_rgba(0, 229, 255, 255),
-                        );
-                        draw_circle(wx, wy + cell_size, 2.0 * scale, WHITE);
-                    }
+                    draw_wall_barricade(wx, wy, wx, wy + cell_size, is_in_construction, t, scale);
                 }
             }
         }
@@ -1772,11 +1635,7 @@ impl Hud {
                 Color::from_rgba(0, 230, 118, 255),
             );
 
-            let stars_str = match state.star_rating {
-                3 => "⭐ ⭐ ⭐",
-                2 => "⭐ ⭐ ☆",
-                _ => "⭐ ☆ ☆",
-            };
+            let stars_str = star_rating_str(state.star_rating);
             let star_dim = self.measure_text_str(stars_str, 32.0 * scale);
             self.draw_text_str(
                 stars_str,
@@ -1809,11 +1668,7 @@ impl Hud {
                 Color::from_rgba(148, 163, 184, 255),
             );
         } else if is_win {
-            let stars_str = match state.star_rating {
-                3 => "⭐ ⭐ ⭐",
-                2 => "⭐ ⭐ ☆",
-                _ => "⭐ ☆ ☆",
-            };
+            let stars_str = star_rating_str(state.star_rating);
             let star_dim = self.measure_text_str(stars_str, 32.0 * scale);
             self.draw_text_str(
                 stars_str,
