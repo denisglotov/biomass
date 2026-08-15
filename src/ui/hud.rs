@@ -2,14 +2,19 @@ use crate::game::grid::{CellType, Edge, EdgeState};
 use crate::game::state::{GamePhase, GameState, SoundTrigger};
 use macroquad::prelude::*;
 
-use super::fx::{Particle, Shockwave};
+use super::fx::{
+    CloneFxParams, Confetti, Particle, Shockwave, SplashBead, WetDropletJump, WetSplash,
+};
 
 pub struct Hud {
     pub font: Option<Font>,
     pub hovered_edge: Option<Edge>,
     pub suppressed_hover_edge: Option<Edge>,
     pub particles: Vec<Particle>,
+    pub confetti: Vec<Confetti>,
     pub shockwaves: Vec<Shockwave>,
+    pub wet_jumps: Vec<WetDropletJump>,
+    pub wet_splashes: Vec<WetSplash>,
     pub pan_offset: (f32, f32),
     pub drag_start: Option<(f32, f32)>,
     pub is_dragging: bool,
@@ -33,7 +38,10 @@ impl Hud {
             hovered_edge: None,
             suppressed_hover_edge: None,
             particles: Vec::new(),
+            confetti: Vec::new(),
             shockwaves: Vec::new(),
+            wet_jumps: Vec::new(),
+            wet_splashes: Vec::new(),
             pan_offset: (0.0, 0.0),
             drag_start: None,
             is_dragging: false,
@@ -93,6 +101,187 @@ impl Hud {
         });
     }
 
+    pub fn spawn_clone_fx(&mut self, params: CloneFxParams) {
+        let seed = rand::gen_range(0.0, 100.0);
+        self.wet_jumps.push(WetDropletJump {
+            from_r: params.from_r,
+            from_c: params.from_c,
+            to_r: params.to_r,
+            to_c: params.to_c,
+            from_x: params.from_x,
+            from_y: params.from_y,
+            to_x: params.to_x,
+            to_y: params.to_y,
+            life: 0.45,
+            max_life: 0.45,
+            cell_size: params.cell_size,
+            seed,
+            has_splashed: false,
+        });
+
+        // Parent cell mitosis ripple recoil
+        self.spawn_shockwave(
+            params.from_x,
+            params.from_y,
+            Color::from_rgba(0, 230, 118, 180),
+            params.cell_size * 0.75,
+        );
+    }
+
+    pub fn spawn_wet_splash(&mut self, cx: f32, cy: f32, cell_size: f32) {
+        let mut beads = Vec::new();
+        let colors = [
+            Color::from_rgba(0, 230, 118, 255),
+            Color::from_rgba(105, 240, 174, 255),
+            Color::from_rgba(174, 234, 0, 255),
+            Color::from_rgba(209, 250, 229, 255),
+            Color::from_rgba(255, 255, 255, 255),
+        ];
+
+        for _ in 0..16 {
+            let angle = rand::gen_range(0.0, std::f32::consts::TAU);
+            let speed = rand::gen_range(35.0, 135.0);
+            let vx = angle.cos() * speed;
+            let vy = angle.sin() * speed - rand::gen_range(20.0, 50.0);
+            let life = rand::gen_range(0.24, 0.40);
+            let color = colors[rand::gen_range(0, colors.len())];
+
+            beads.push(SplashBead {
+                x: cx + angle.cos() * rand::gen_range(1.0, 6.0),
+                y: cy + angle.sin() * rand::gen_range(1.0, 6.0),
+                vx,
+                vy,
+                radius: rand::gen_range(2.0, 4.2),
+                color,
+                life,
+                max_life: life,
+            });
+        }
+
+        self.wet_splashes.push(WetSplash {
+            cx,
+            cy,
+            cell_size,
+            life: 0.40,
+            max_life: 0.40,
+            beads,
+        });
+
+        // Wet impact shockwaves
+        self.spawn_shockwave(cx, cy, Color::from_rgba(0, 230, 118, 220), cell_size * 1.2);
+        self.spawn_shockwave(
+            cx,
+            cy,
+            Color::from_rgba(105, 240, 174, 240),
+            cell_size * 0.8,
+        );
+        self.spawn_shockwave(
+            cx,
+            cy,
+            Color::from_rgba(255, 255, 255, 230),
+            cell_size * 0.45,
+        );
+    }
+
+    pub fn spawn_confetti_burst(&mut self, cx: f32, cy: f32, count: usize, scale: f32) {
+        let colors = [
+            Color::from_rgba(255, 215, 0, 255),   // Radiant Gold
+            Color::from_rgba(0, 230, 118, 255),   // Emerald Green
+            Color::from_rgba(0, 229, 255, 255),   // Neon Cyan
+            Color::from_rgba(255, 64, 129, 255),  // Hot Pink
+            Color::from_rgba(255, 145, 0, 255),   // Electric Orange
+            Color::from_rgba(213, 0, 249, 255),   // Bright Violet
+            Color::from_rgba(255, 255, 255, 255), // Pure White
+        ];
+        for _ in 0..count {
+            let angle = rand::gen_range(-std::f32::consts::PI * 0.95, -std::f32::consts::PI * 0.05);
+            let speed = rand::gen_range(160.0, 480.0) * scale;
+            let life = rand::gen_range(2.8, 5.2);
+            let color = colors[rand::gen_range(0, colors.len())];
+            self.confetti.push(Confetti {
+                x: cx,
+                y: cy,
+                vx: angle.cos() * speed,
+                vy: angle.sin() * speed,
+                rotation: rand::gen_range(0.0, std::f32::consts::TAU),
+                rotation_speed: rand::gen_range(-8.0, 8.0),
+                width: rand::gen_range(9.0, 16.0) * scale,
+                height: rand::gen_range(5.0, 10.0) * scale,
+                color,
+                life,
+                max_life: life,
+                sway_phase: rand::gen_range(0.0, std::f32::consts::TAU),
+            });
+        }
+    }
+
+    pub fn spawn_confetti_rain(&mut self, screen_w: f32, scale: f32, count: usize) {
+        let colors = [
+            Color::from_rgba(255, 215, 0, 255),   // Gold
+            Color::from_rgba(0, 230, 118, 255),   // Emerald
+            Color::from_rgba(0, 229, 255, 255),   // Cyan
+            Color::from_rgba(255, 64, 129, 255),  // Pink
+            Color::from_rgba(255, 145, 0, 255),   // Orange
+            Color::from_rgba(213, 0, 249, 255),   // Violet
+            Color::from_rgba(255, 255, 255, 255), // White
+        ];
+        for _ in 0..count {
+            let x = rand::gen_range(0.0, screen_w);
+            let y = rand::gen_range(-50.0, -10.0);
+            let speed_y = rand::gen_range(80.0, 220.0) * scale;
+            let speed_x = rand::gen_range(-40.0, 40.0) * scale;
+            let life = rand::gen_range(3.5, 6.0);
+            let color = colors[rand::gen_range(0, colors.len())];
+            self.confetti.push(Confetti {
+                x,
+                y,
+                vx: speed_x,
+                vy: speed_y,
+                rotation: rand::gen_range(0.0, std::f32::consts::TAU),
+                rotation_speed: rand::gen_range(-6.0, 6.0),
+                width: rand::gen_range(8.0, 15.0) * scale,
+                height: rand::gen_range(4.0, 9.0) * scale,
+                color,
+                life,
+                max_life: life,
+                sway_phase: rand::gen_range(0.0, std::f32::consts::TAU),
+            });
+        }
+    }
+
+    pub fn draw_confetti(&self) {
+        for c in &self.confetti {
+            let alpha = (c.life / c.max_life).min(1.0).clamp(0.0, 1.0);
+            let color = Color::new(c.color.r, c.color.g, c.color.b, alpha);
+
+            let cos_r = c.rotation.cos();
+            let sin_r = c.rotation.sin();
+            let flutter = (c.rotation * 1.6).cos().abs().max(0.18);
+            let hw = c.width * 0.5 * flutter;
+            let hh = c.height * 0.5;
+
+            let p1 = vec2(
+                c.x + (-hw * cos_r - -hh * sin_r),
+                c.y + (-hw * sin_r + -hh * cos_r),
+            );
+            let p2 = vec2(
+                c.x + (hw * cos_r - -hh * sin_r),
+                c.y + (hw * sin_r + -hh * cos_r),
+            );
+            let p3 = vec2(
+                c.x + (hw * cos_r - hh * sin_r),
+                c.y + (hw * sin_r + hh * cos_r),
+            );
+            let p4 = vec2(
+                c.x + (-hw * cos_r - hh * sin_r),
+                c.y + (-hw * sin_r + hh * cos_r),
+            );
+
+            draw_triangle(p1, p2, p3, color);
+            draw_triangle(p1, p3, p4, color);
+        }
+    }
+
     pub fn update_fx(&mut self, dt: f32) {
         for p in self.particles.iter_mut() {
             p.x += p.vx * dt;
@@ -101,11 +290,54 @@ impl Hud {
         }
         self.particles.retain(|p| p.life > 0.0);
 
+        let time = get_time() as f32;
+        for c in self.confetti.iter_mut() {
+            c.vy += 85.0 * dt;
+            c.vx += (time * 3.0 + c.sway_phase).sin() * 25.0 * dt;
+            c.vx *= 0.99;
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+            c.rotation += c.rotation_speed * dt;
+            c.life -= dt;
+        }
+        self.confetti.retain(|c| c.life > 0.0);
+
         for sw in self.shockwaves.iter_mut() {
             sw.radius += (sw.max_radius - sw.radius) * 7.0 * dt;
             sw.alpha -= dt * 1.8;
         }
         self.shockwaves.retain(|sw| sw.alpha > 0.0);
+
+        for jump in self.wet_jumps.iter_mut() {
+            jump.life -= dt;
+        }
+
+        let mut new_splashes = Vec::new();
+        for jump in self.wet_jumps.iter_mut() {
+            let progress = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
+            if progress >= 0.65 && !jump.has_splashed {
+                jump.has_splashed = true;
+                new_splashes.push((jump.to_x, jump.to_y, jump.cell_size));
+            }
+        }
+        for (tx, ty, cs) in new_splashes {
+            self.spawn_wet_splash(tx, ty, cs);
+        }
+        self.wet_jumps.retain(|j| j.life > 0.0);
+
+        for splash in self.wet_splashes.iter_mut() {
+            splash.life -= dt;
+            for bead in splash.beads.iter_mut() {
+                bead.x += bead.vx * dt;
+                bead.y += bead.vy * dt;
+                bead.vy += 160.0 * dt;
+                bead.vx *= 0.94;
+                bead.vy *= 0.94;
+                bead.life -= dt;
+            }
+            splash.beads.retain(|b| b.life > 0.0);
+        }
+        self.wet_splashes.retain(|s| s.life > 0.0);
     }
 
     pub fn draw_and_handle_input(&mut self, state: &mut GameState) -> Option<SoundTrigger> {
@@ -420,6 +652,7 @@ impl Hud {
             self.pan_offset = (0.0, 0.0);
             self.drag_start = None;
             self.is_dragging = false;
+            self.confetti.clear();
         }
 
         // Cell size scaling rule:
@@ -613,65 +846,154 @@ impl Hud {
                         );
                     }
                     CellType::Biomass => {
-                        draw_rectangle(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            Color::from_rgba(209, 250, 229, 255),
-                        );
-                        draw_rectangle_lines(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            1.5,
-                            Color::from_rgba(0, 230, 118, 200),
-                        );
+                        let active_target_jump =
+                            self.wet_jumps.iter().find(|j| j.to_r == r && j.to_c == c);
+                        let active_parent_jump = self
+                            .wet_jumps
+                            .iter()
+                            .find(|j| j.from_r == r && j.from_c == c);
 
-                        let center_x = cx + cell_size / 2.0;
-                        let center_y = cy + cell_size / 2.0;
-                        let pulse = (t * 4.0 + (r + c) as f32).sin() * (2.5 * scale);
-                        let base_r = cell_size * 0.28 + pulse;
+                        let (is_in_flight, bloom_s) = if let Some(jump) = active_target_jump {
+                            let prog = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
+                            if prog < 0.65 {
+                                (true, 0.0)
+                            } else {
+                                (false, ((prog - 0.65) / 0.35).clamp(0.0, 1.0))
+                            }
+                        } else {
+                            (false, 1.0)
+                        };
 
-                        draw_circle(
-                            center_x,
-                            center_y,
-                            base_r * 1.5,
-                            Color::from_rgba(0, 230, 118, 50),
-                        );
-                        draw_circle(
-                            center_x,
-                            center_y,
-                            base_r * 1.2,
-                            Color::from_rgba(0, 230, 118, 100),
-                        );
-                        draw_circle(
-                            center_x,
-                            center_y,
-                            base_r,
-                            Color::from_rgba(0, 230, 118, 255),
-                        );
+                        if is_in_flight {
+                            // Target cell is not yet occupied by biomass (droplet is still airborne)
+                            let tile_color = if (r + c) % 2 == 0 {
+                                Color::from_rgba(248, 250, 252, 255)
+                            } else {
+                                Color::from_rgba(226, 232, 240, 255)
+                            };
 
-                        for i in 0..4 {
-                            let angle = t * 2.8 + (i as f32 * std::f32::consts::TAU / 4.0);
-                            let orbit_radius = base_r * 0.55;
-                            let ox = center_x + angle.cos() * orbit_radius;
-                            let oy = center_y + angle.sin() * orbit_radius;
+                            draw_rectangle(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                tile_color,
+                            );
+
+                            draw_rectangle_lines(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                1.0,
+                                Color::from_rgba(2, 132, 199, 120),
+                            );
+                        } else {
+                            if bloom_s < 1.0 {
+                                // Draw base empty checkered tile underneath
+                                let tile_color = if (r + c) % 2 == 0 {
+                                    Color::from_rgba(248, 250, 252, 255)
+                                } else {
+                                    Color::from_rgba(226, 232, 240, 255)
+                                };
+                                draw_rectangle(
+                                    cx + 1.0,
+                                    cy + 1.0,
+                                    cell_size - 2.0,
+                                    cell_size - 2.0,
+                                    tile_color,
+                                );
+                            }
+
+                            // Biomass background tile (fades in smoothly with landing)
+                            let bg_alpha = (bloom_s * 1.8).min(1.0);
+                            draw_rectangle(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                Color::new(0.82, 0.98, 0.90, bg_alpha),
+                            );
+                            draw_rectangle_lines(
+                                cx + 1.0,
+                                cy + 1.0,
+                                cell_size - 2.0,
+                                cell_size - 2.0,
+                                1.5,
+                                Color::new(0.0, 0.9, 0.46, bg_alpha * 0.78),
+                            );
+
+                            // Elastic bloom scale for newly landing cell
+                            let growth_scale = if bloom_s < 1.0 {
+                                (1.0 - (-5.0 * bloom_s).exp()
+                                    * (std::f32::consts::PI * 2.5 * bloom_s).cos())
+                                .max(0.0)
+                            } else {
+                                1.0
+                            };
+
+                            // Parent cell recoil pulse
+                            let parent_pulse = if let Some(p_jump) = active_parent_jump {
+                                let p_prog =
+                                    (1.0 - (p_jump.life / p_jump.max_life)).clamp(0.0, 1.0);
+                                if p_prog < 0.35 {
+                                    ((1.0 - p_prog / 0.35) * std::f32::consts::PI).sin()
+                                        * (-3.0 * scale)
+                                } else {
+                                    0.0
+                                }
+                            } else {
+                                0.0
+                            };
+
+                            let center_x = cx + cell_size / 2.0;
+                            let center_y = cy + cell_size / 2.0;
+                            let pulse =
+                                (t * 4.0 + (r + c) as f32).sin() * (2.5 * scale) + parent_pulse;
+                            let base_r = (cell_size * 0.28 + pulse) * growth_scale;
+                            let core_alpha = (bloom_s * 2.0).min(1.0);
+
                             draw_circle(
-                                ox,
-                                oy,
+                                center_x,
+                                center_y,
+                                base_r * 1.5,
+                                Color::new(0.0, 0.9, 0.46, core_alpha * 0.2),
+                            );
+                            draw_circle(
+                                center_x,
+                                center_y,
+                                base_r * 1.2,
+                                Color::new(0.0, 0.9, 0.46, core_alpha * 0.4),
+                            );
+                            draw_circle(
+                                center_x,
+                                center_y,
+                                base_r,
+                                Color::new(0.0, 0.9, 0.46, core_alpha),
+                            );
+
+                            for i in 0..4 {
+                                let angle = t * 2.8
+                                    + (i as f32 * std::f32::consts::TAU / 4.0)
+                                    + (1.0 - bloom_s) * 4.0;
+                                let orbit_radius = base_r * 0.55;
+                                let ox = center_x + angle.cos() * orbit_radius;
+                                let oy = center_y + angle.sin() * orbit_radius;
+                                draw_circle(
+                                    ox,
+                                    oy,
+                                    base_r * 0.28,
+                                    Color::new(0.41, 0.94, 0.68, core_alpha),
+                                );
+                            }
+
+                            draw_circle(
+                                center_x - base_r * 0.25,
+                                center_y - base_r * 0.25,
                                 base_r * 0.28,
-                                Color::from_rgba(105, 240, 174, 255),
+                                Color::new(1.0, 1.0, 1.0, core_alpha),
                             );
                         }
-
-                        draw_circle(
-                            center_x - base_r * 0.25,
-                            center_y - base_r * 0.25,
-                            base_r * 0.28,
-                            WHITE,
-                        );
                     }
                     CellType::Obstacle => {
                         draw_rectangle(
@@ -1022,7 +1344,26 @@ impl Hud {
             }
         }
 
-        // 9. Particle FX & Blast Shockwaves
+        // 9. Particle FX, Wet Droplet Jumps, Splashes & Shockwaves
+        for event in &state.newly_cloned_this_step {
+            let from_cx = gx + (event.from.1 as f32 + 0.5) * cell_size;
+            let from_cy = gy + (event.from.0 as f32 + 0.5) * cell_size;
+            let to_cx = gx + (event.to.1 as f32 + 0.5) * cell_size;
+            let to_cy = gy + (event.to.0 as f32 + 0.5) * cell_size;
+            self.spawn_clone_fx(CloneFxParams {
+                from_r: event.from.0,
+                from_c: event.from.1,
+                to_r: event.to.0,
+                to_c: event.to.1,
+                from_x: from_cx,
+                from_y: from_cy,
+                to_x: to_cx,
+                to_y: to_cy,
+                cell_size,
+            });
+        }
+        state.newly_cloned_this_step.clear();
+
         for &(r, c) in &state.newly_starved_this_step {
             let cx = gx + (c as f32 + 0.5) * cell_size;
             let cy = gy + (r as f32 + 0.5) * cell_size;
@@ -1033,13 +1374,245 @@ impl Hud {
             self.spawn_burst(cx, cy, Color::from_rgba(255, 234, 0, 255), 16);
         }
         state.newly_starved_this_step.clear();
-        state.newly_infected_this_step.clear();
 
+        // 9a. Draw Wet Biomass Droplet Jumps (Smooth, Viscous Parabolic Leaps)
+        for jump in &self.wet_jumps {
+            let progress = (1.0 - (jump.life / jump.max_life)).clamp(0.0, 1.0);
+
+            if progress < 0.65 {
+                let p_flight = (progress / 0.65).clamp(0.0, 1.0);
+                // Hermite smoothstep easing for tangible organic weight
+                let p = p_flight * p_flight * (3.0 - 2.0 * p_flight);
+
+                let arc_h = jump.cell_size * 0.42;
+                let x_base = jump.from_x + (jump.to_x - jump.from_x) * p;
+                let y_base = jump.from_y + (jump.to_y - jump.from_y) * p;
+                let y_arc = -arc_h * 4.0 * p * (1.0 - p);
+                let drop_x = x_base;
+                let drop_y = y_base + y_arc;
+
+                // Motion vector & orientation for squash and stretch
+                let dx = jump.to_x - jump.from_x;
+                let dy = jump.to_y - jump.from_y - arc_h * 4.0 * (1.0 - 2.0 * p);
+                let len = (dx * dx + dy * dy).sqrt().max(0.001);
+                let dir_x = dx / len;
+                let dir_y = dy / len;
+
+                let v_speed = 4.0 * p * (1.0 - p);
+                let stretch = 1.0 + 0.65 * v_speed;
+                let squash = 1.0 / stretch.sqrt();
+
+                // Fluid surface tension oscillation (wobble)
+                let wobble = ((p * 26.0 + jump.seed).sin()) * 0.12 * (1.0 - p * 0.4);
+                let base_r = jump.cell_size * 0.22 * (1.0 + wobble) * scale;
+
+                // Viscous liquid neck / stretching filament during early flight (p < 0.45)
+                if p < 0.45 {
+                    let neck_fade = 1.0 - (p / 0.45);
+                    let steps = 10;
+                    let mut prev_pt = (jump.from_x, jump.from_y);
+                    for i in 1..=steps {
+                        let u = i as f32 / steps as f32;
+                        let ux = jump.from_x + (drop_x - jump.from_x) * u;
+                        let uy = jump.from_y + (drop_y - jump.from_y) * u
+                            - (arc_h * 0.5) * (4.0 * u * (1.0 - u)) * neck_fade;
+                        let taper = 1.0 - 0.65 * (4.0 * u * (1.0 - u));
+                        let w =
+                            (jump.cell_size * 0.20 * neck_fade * taper * scale).max(1.5 * scale);
+                        draw_line(
+                            prev_pt.0,
+                            prev_pt.1,
+                            ux,
+                            uy,
+                            w * 1.5,
+                            Color::new(0.0, 0.9, 0.46, neck_fade * 0.35),
+                        );
+                        draw_line(
+                            prev_pt.0,
+                            prev_pt.1,
+                            ux,
+                            uy,
+                            w,
+                            Color::new(0.0, 0.9, 0.46, neck_fade * 0.85),
+                        );
+                        draw_line(
+                            prev_pt.0,
+                            prev_pt.1,
+                            ux,
+                            uy,
+                            (w * 0.45).max(1.0),
+                            Color::new(0.41, 0.94, 0.68, neck_fade * 0.95),
+                        );
+                        prev_pt = (ux, uy);
+                    }
+                }
+
+                // Trailing micro-droplets (bead-on-a-string capillary effect)
+                if p >= 0.18 {
+                    let trails = [0.08, 0.16];
+                    for (idx, &lag) in trails.iter().enumerate() {
+                        let tp_flight = (p_flight - lag).max(0.0);
+                        let tp = tp_flight * tp_flight * (3.0 - 2.0 * tp_flight);
+                        let tx = jump.from_x + (jump.to_x - jump.from_x) * tp;
+                        let ty = jump.from_y + (jump.to_y - jump.from_y) * tp
+                            - arc_h * 4.0 * tp * (1.0 - tp);
+                        let bead_r =
+                            (jump.cell_size * (0.075 - idx as f32 * 0.022) * scale).max(2.0);
+                        let bead_alpha = (1.0 - lag / 0.28).clamp(0.0, 1.0);
+
+                        draw_circle(
+                            tx,
+                            ty,
+                            bead_r * 1.5,
+                            Color::new(0.0, 0.9, 0.46, bead_alpha * 0.35),
+                        );
+                        draw_circle(tx, ty, bead_r, Color::new(0.0, 0.9, 0.46, bead_alpha * 0.9));
+                        draw_circle(
+                            tx,
+                            ty,
+                            bead_r * 0.55,
+                            Color::new(0.41, 0.94, 0.68, bead_alpha),
+                        );
+                        draw_circle(
+                            tx - bead_r * 0.3,
+                            ty - bead_r * 0.3,
+                            (bead_r * 0.3).max(1.0),
+                            Color::new(1.0, 1.0, 1.0, bead_alpha * 0.95),
+                        );
+                    }
+                }
+
+                // Main fluid teardrop blob (composite overlapping gelatinous discs)
+                let head_pos = (
+                    drop_x + dir_x * (base_r * 0.35 * stretch),
+                    drop_y + dir_y * (base_r * 0.35 * stretch),
+                );
+                let body_pos = (drop_x, drop_y);
+                let tail_pos = (
+                    drop_x - dir_x * (base_r * 0.55 * stretch),
+                    drop_y - dir_y * (base_r * 0.55 * stretch),
+                );
+
+                let blob_parts = [
+                    (tail_pos, base_r * 0.65 * squash),
+                    (body_pos, base_r * squash),
+                    (head_pos, base_r * 0.95 * squash),
+                ];
+
+                // Outer soft bioluminescent slime glow
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r * 1.55, Color::from_rgba(0, 230, 118, 55));
+                }
+                // Translucent gel mantle
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r * 1.25, Color::from_rgba(0, 200, 100, 140));
+                }
+                // Viscous saturated emerald body
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r, Color::from_rgba(0, 230, 118, 255));
+                }
+                // Bright cytoplasmic core
+                for &(pos, r) in &blob_parts {
+                    draw_circle(pos.0, pos.1, r * 0.6, Color::from_rgba(105, 240, 174, 255));
+                }
+
+                // Glossy specular reflection highlights (wet liquid sheen)
+                let glint_x = head_pos.0 - base_r * 0.32;
+                let glint_y = head_pos.1 - base_r * 0.32;
+                draw_circle(
+                    glint_x,
+                    glint_y,
+                    (base_r * 0.30).max(2.0),
+                    Color::from_rgba(255, 255, 255, 245),
+                );
+                draw_circle(
+                    glint_x + base_r * 0.22,
+                    glint_y - base_r * 0.08,
+                    (base_r * 0.15).max(1.2),
+                    Color::from_rgba(255, 255, 255, 190),
+                );
+                // Lower rim bounce light
+                draw_circle(
+                    body_pos.0 + base_r * 0.30,
+                    body_pos.1 + base_r * 0.30,
+                    base_r * 0.22,
+                    Color::from_rgba(174, 234, 0, 130),
+                );
+            } else {
+                // Landing splat phase (pancake ripple & splash spread)
+                let s = (progress - 0.65) / 0.35;
+                let splat_r = jump.cell_size * (0.22 + 0.45 * s) * scale;
+                let splat_alpha = ((1.0 - s) * 0.95).clamp(0.0, 1.0);
+
+                draw_circle_lines(
+                    jump.to_x,
+                    jump.to_y,
+                    splat_r,
+                    (3.5 * (1.0 - s) * scale).max(1.0),
+                    Color::new(0.0, 0.9, 0.46, splat_alpha),
+                );
+                if s < 0.6 {
+                    let inner_r = splat_r * 0.6;
+                    draw_circle_lines(
+                        jump.to_x,
+                        jump.to_y,
+                        inner_r,
+                        (2.5 * (1.0 - s / 0.6) * scale).max(1.0),
+                        Color::new(0.41, 0.94, 0.68, splat_alpha),
+                    );
+                }
+            }
+        }
+
+        // 9b. Draw Wet Splash Splatter Beads & Surface Slime Puddle
+        for splash in &self.wet_splashes {
+            let prog = (1.0 - (splash.life / splash.max_life)).clamp(0.0, 1.0);
+            let alpha = (splash.life / splash.max_life).clamp(0.0, 1.0);
+
+            // Expanding fluid puddle on tile surface
+            let puddle_r = (splash.cell_size * (0.15 + 0.25 * prog) * scale).max(1.0);
+            draw_circle(
+                splash.cx,
+                splash.cy,
+                puddle_r * 1.3,
+                Color::new(0.0, 0.9, 0.46, alpha * 0.25),
+            );
+            draw_circle(
+                splash.cx,
+                splash.cy,
+                puddle_r,
+                Color::new(0.41, 0.94, 0.68, alpha * 0.4),
+            );
+
+            for bead in &splash.beads {
+                let bead_prog = (1.0 - (bead.life / bead.max_life)).clamp(0.0, 1.0);
+                let alpha = (bead.life / bead.max_life).clamp(0.0, 1.0);
+                let r = (bead.radius * (1.0 - bead_prog * 0.5) * scale).max(1.5);
+                let col = Color::new(bead.color.r, bead.color.g, bead.color.b, alpha);
+
+                draw_circle(
+                    bead.x,
+                    bead.y,
+                    r * 1.4,
+                    Color::new(0.0, 0.9, 0.46, alpha * 0.35),
+                );
+                draw_circle(bead.x, bead.y, r, col);
+                draw_circle(
+                    bead.x - r * 0.3,
+                    bead.y - r * 0.3,
+                    (r * 0.35).max(1.0),
+                    Color::new(1.0, 1.0, 1.0, alpha * 0.9),
+                );
+            }
+        }
+
+        // 9c. Shockwaves
         for sw in &self.shockwaves {
             let color = Color::new(sw.color.r, sw.color.g, sw.color.b, sw.alpha.clamp(0.0, 1.0));
             draw_circle_lines(sw.cx, sw.cy, sw.radius, 4.0 * scale, color);
         }
 
+        // 9d. Particle Bursts & Spores
         for p in &self.particles {
             let alpha = (p.life / p.max_life).clamp(0.0, 1.0);
             let color = Color::new(p.color.r, p.color.g, p.color.b, alpha);
@@ -1091,7 +1664,7 @@ impl Hud {
     }
 
     fn draw_modal(
-        &self,
+        &mut self,
         state: &mut GameState,
         screen_w: f32,
         screen_h: f32,
@@ -1099,17 +1672,49 @@ impl Hud {
     ) -> Option<SoundTrigger> {
         let mut sound_trigger = None;
 
+        let is_win = state.phase == GamePhase::Victory;
+        let is_last_level = state.current_level_idx + 1 >= state.levels.len();
+        let is_congrats = is_win && is_last_level;
+
         // Dark Translucent Backdrop
         draw_rectangle(0.0, 0.0, screen_w, screen_h, Color::from_rgba(0, 0, 0, 190));
 
-        let card_w = (420.0 * scale).min(screen_w * 0.92);
-        let card_h = (260.0 * scale).min(screen_h * 0.85);
+        // Manage and trigger confetti celebration on the final level victory
+        if is_congrats {
+            if self.confetti.is_empty() {
+                self.spawn_confetti_burst(screen_w * 0.25, screen_h * 0.75, 45, scale);
+                self.spawn_confetti_burst(screen_w * 0.75, screen_h * 0.75, 45, scale);
+                self.spawn_confetti_burst(screen_w * 0.50, screen_h * 0.50, 30, scale);
+            } else if self.confetti.len() < 160 {
+                self.spawn_confetti_rain(screen_w, scale, 2);
+            }
+        }
+
+        // Draw ambient celebration confetti
+        self.draw_confetti();
+
+        let card_w = if is_congrats {
+            (460.0 * scale).min(screen_w * 0.94)
+        } else {
+            (420.0 * scale).min(screen_w * 0.92)
+        };
+        let card_h = if is_congrats {
+            (290.0 * scale).min(screen_h * 0.88)
+        } else {
+            (260.0 * scale).min(screen_h * 0.85)
+        };
         let card_x = (screen_w - card_w) / 2.0;
         let card_y = (screen_h - card_h) / 2.0;
 
-        let is_win = state.phase == GamePhase::Victory;
-
-        let border_color = if is_win {
+        let border_color = if is_congrats {
+            let pulse = (get_time() as f32 * 3.5).sin() * 0.5 + 0.5;
+            Color::from_rgba(
+                (255.0 * pulse + 0.0 * (1.0 - pulse)) as u8,
+                (215.0 * pulse + 230.0 * (1.0 - pulse)) as u8,
+                (0.0 * pulse + 118.0 * (1.0 - pulse)) as u8,
+                255,
+            )
+        } else if is_win {
             Color::from_rgba(0, 230, 118, 255)
         } else {
             Color::from_rgba(255, 82, 82, 255)
@@ -1123,29 +1728,87 @@ impl Hud {
             card_h,
             Color::from_rgba(15, 23, 42, 255),
         );
-        draw_rectangle_lines(card_x, card_y, card_w, card_h, 3.0 * scale, border_color);
+        draw_rectangle_lines(card_x, card_y, card_w, card_h, 3.5 * scale, border_color);
 
-        let title = if is_win {
+        let title = if is_congrats {
+            "CONGRATULATIONS!"
+        } else if is_win {
             "CONTAINMENT COMPLETE"
         } else {
             "☣ CONTAINMENT BREACHED"
         };
-        let mut title_size = 24.0 * scale;
+        let mut title_size = if is_congrats {
+            26.0 * scale
+        } else {
+            24.0 * scale
+        };
         let mut title_dim = self.measure_text_str(title, title_size);
         if title_dim.width > card_w - 20.0 * scale {
             title_size *= (card_w - 20.0 * scale) / title_dim.width;
             title_dim = self.measure_text_str(title, title_size);
         }
         let title_x = card_x + (card_w - title_dim.width) / 2.0;
+        let title_color = if is_congrats {
+            Color::from_rgba(255, 215, 0, 255)
+        } else {
+            border_color
+        };
         self.draw_text_str(
             title,
             title_x,
-            card_y + 44.0 * scale,
+            card_y + 42.0 * scale,
             title_size,
-            border_color,
+            title_color,
         );
 
-        if is_win {
+        if is_congrats {
+            let banner = "★ ALL SECTORS CONTAINED ★";
+            let banner_dim = self.measure_text_str(banner, 16.0 * scale);
+            self.draw_text_str(
+                banner,
+                card_x + (card_w - banner_dim.width) / 2.0,
+                card_y + 70.0 * scale,
+                16.0 * scale,
+                Color::from_rgba(0, 230, 118, 255),
+            );
+
+            let stars_str = match state.star_rating {
+                3 => "⭐ ⭐ ⭐",
+                2 => "⭐ ⭐ ☆",
+                _ => "⭐ ☆ ☆",
+            };
+            let star_dim = self.measure_text_str(stars_str, 32.0 * scale);
+            self.draw_text_str(
+                stars_str,
+                card_x + (card_w - star_dim.width) / 2.0,
+                card_y + 112.0 * scale,
+                32.0 * scale,
+                Color::from_rgba(255, 215, 0, 255), // Bright Gold
+            );
+
+            let msg = format!(
+                "Facility secured! Final sector cleared in {} turns.",
+                state.turn_number
+            );
+            let msg_dim = self.measure_text_str(&msg, 15.0 * scale);
+            self.draw_text_str(
+                &msg,
+                card_x + (card_w - msg_dim.width) / 2.0,
+                card_y + 155.0 * scale,
+                15.0 * scale,
+                WHITE,
+            );
+
+            let msg2 = "All bio-threats neutralized. Outstanding containment!";
+            let msg2_dim = self.measure_text_str(msg2, 14.0 * scale);
+            self.draw_text_str(
+                msg2,
+                card_x + (card_w - msg2_dim.width) / 2.0,
+                card_y + 180.0 * scale,
+                14.0 * scale,
+                Color::from_rgba(148, 163, 184, 255),
+            );
+        } else if is_win {
             let stars_str = match state.star_rating {
                 3 => "⭐ ⭐ ⭐",
                 2 => "⭐ ⭐ ☆",
@@ -1181,7 +1844,7 @@ impl Hud {
             );
         }
 
-        let btn_w = (130.0 * scale).min(card_w * 0.42);
+        let btn_w = (140.0 * scale).min(card_w * 0.44);
         let btn_h = 36.0 * scale;
         let btn_y = card_y + card_h - 52.0 * scale;
 
@@ -1189,21 +1852,31 @@ impl Hud {
         let clicked = is_mouse_button_released(MouseButton::Left);
 
         let retry_rect = Rect::new(card_x + 20.0 * scale, btn_y, btn_w, btn_h);
-        self.draw_button("↺ Retry Level", retry_rect, mouse_pos, 15.0 * scale);
+        let retry_label = if is_congrats {
+            "↺ Replay Level"
+        } else {
+            "↺ Retry Level"
+        };
+        self.draw_button(retry_label, retry_rect, mouse_pos, 15.0 * scale);
         if clicked && retry_rect.contains(mouse_pos.into()) {
             state.reset_level();
+            self.confetti.clear();
             sound_trigger = Some(SoundTrigger::ButtonClick);
         }
 
         let next_rect = Rect::new(card_x + card_w - btn_w - 20.0 * scale, btn_y, btn_w, btn_h);
-        if is_win {
+        if is_congrats {
+            self.draw_button("⏮ Start from First", next_rect, mouse_pos, 15.0 * scale);
+            if clicked && next_rect.contains(mouse_pos.into()) {
+                state.load_level(0);
+                self.confetti.clear();
+                sound_trigger = Some(SoundTrigger::ButtonClick);
+            }
+        } else if is_win {
             self.draw_button("▶ Next Level", next_rect, mouse_pos, 15.0 * scale);
             if clicked && next_rect.contains(mouse_pos.into()) {
-                if state.current_level_idx + 1 < state.levels.len() {
-                    state.load_level(state.current_level_idx + 1);
-                } else {
-                    state.reset_level();
-                }
+                state.load_level(state.current_level_idx + 1);
+                self.confetti.clear();
                 sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         } else {
@@ -1214,6 +1887,7 @@ impl Hud {
                 } else {
                     state.reset_level();
                 }
+                self.confetti.clear();
                 sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         }

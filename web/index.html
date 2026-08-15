@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Biomass - Sci-Fi Containment Protocolt</title>
+    <title>Biomass - Sci-Fi Containment Protocol</title>
     <meta
       name="description"
       content="Biomass turn-based containment strategy puzzle game written in Rust & Macroquad, compiled to WebAssembly."
@@ -56,7 +56,16 @@
       const audioBuffers = {};
 
       (function preloadBytes() {
-        const files = ["wall", "tick", "pop", "win", "loss", "click", "error"];
+        const files = [
+          "wall",
+          "tick",
+          "pop",
+          "win",
+          "fanfare",
+          "loss",
+          "click",
+          "error",
+        ];
         for (const file of files) {
           fetch(`assets/${file}.wav`)
             .then((r) => r.arrayBuffer())
@@ -174,6 +183,9 @@
             };
             env_obj.env.play_sound_win = function () {
               if (window.biomassPlaySound) window.biomassPlaySound("win");
+            };
+            env_obj.env.play_sound_fanfare = function () {
+              if (window.biomassPlaySound) window.biomassPlaySound("fanfare");
             };
             env_obj.env.play_sound_loss = function () {
               if (window.biomassPlaySound) window.biomassPlaySound("loss");
