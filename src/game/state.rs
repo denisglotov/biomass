@@ -13,7 +13,7 @@ pub enum GamePhase {
 }
 
 pub struct GameState {
-    pub levels: Vec<Level>,
+    pub levels: &'static [Level],
     pub current_level_idx: usize,
     pub level: Level,
     pub grid: Grid,
@@ -38,7 +38,7 @@ impl GameState {
     pub fn new() -> Self {
         let levels = get_levels();
         let level_idx = load_last_level_reached().min(levels.len().saturating_sub(1));
-        let level = levels[level_idx].clone();
+        let level = levels[level_idx];
         let grid = level.create_initial_grid();
         let walls_left = level.walls_per_turn;
 
@@ -74,7 +74,7 @@ impl GameState {
 
     fn init_level(&mut self, level_idx: usize) {
         self.current_level_idx = level_idx;
-        self.level = self.levels[level_idx].clone();
+        self.level = self.levels[level_idx];
         self.grid = self.level.create_initial_grid();
         self.turn_number = 1;
         self.walls_left = self.level.walls_per_turn;
