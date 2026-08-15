@@ -49,8 +49,6 @@ fn draw_empty_tile(cx: f32, cy: f32, cell_size: f32, r: usize, c: usize) {
     );
 }
 
-
-
 fn edge_midpoint(edge: Edge, gx: f32, gy: f32, cell_size: f32) -> (f32, f32) {
     match edge {
         Edge::Horizontal { r, c } => (gx + (c as f32 + 0.5) * cell_size, gy + r as f32 * cell_size),
