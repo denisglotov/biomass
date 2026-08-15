@@ -15,7 +15,7 @@ macroquad = { version = "0.4", features = ["audio"] }
 package_name = "org.dymka.biomass"
 label = "Biomass"
 version_code = 1
-version_name = "0.1.0"
+version_name = "0.1.1"
 android_version = 35
 target_sdk_version = 35
 min_sdk_version = 23
@@ -23,6 +23,9 @@ assets = "assets/"
 res = "res"
 icon = "@mipmap/ic_launcher"
 build_targets = ["aarch64-linux-android"]
+
+[package.metadata.android.activity_attributes]
+"android:exported" = "true"
 
 [profile.release]
 opt-level = "z"
