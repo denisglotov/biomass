@@ -15,7 +15,7 @@ fn window_conf() -> Conf {
         high_dpi: true,
         window_resizable: true,
         fullscreen: false,
-        sample_count: 4,
+        sample_count: if cfg!(target_os = "android") { 0 } else { 4 },
         ..Default::default()
     }
 }

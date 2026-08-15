@@ -150,6 +150,7 @@ fn star_rating_str(star_rating: usize) -> &'static str {
 
 pub struct Hud {
     pub font: Option<Font>,
+    pub stone_textures: [Texture2D; 3],
     pub hovered_edge: Option<Edge>,
     pub suppressed_hover_edge: Option<Edge>,
     pub particles: Vec<Particle>,
@@ -175,8 +176,28 @@ impl Hud {
             load_ttf_font_from_bytes(font_bytes).ok()
         };
 
+        let stone_textures = [
+            Texture2D::from_file_with_format(
+                include_bytes!("../../assets/stones/stone1.png"),
+                Some(ImageFormat::Png),
+            ),
+            Texture2D::from_file_with_format(
+                include_bytes!("../../assets/stones/stone2.png"),
+                Some(ImageFormat::Png),
+            ),
+            Texture2D::from_file_with_format(
+                include_bytes!("../../assets/stones/stone3.png"),
+                Some(ImageFormat::Png),
+            ),
+        ];
+
+        for tex in &stone_textures {
+            tex.set_filter(FilterMode::Linear);
+        }
+
         Self {
             font,
+            stone_textures,
             hovered_edge: None,
             suppressed_hover_edge: None,
             particles: Vec::new(),
@@ -507,7 +528,7 @@ impl Hud {
         let stats_y = header_h;
         self.draw_stats_bar(state, screen_w, stats_y, stats_h, scale);
 
-        // 4. Draw Level Description Banner
+        // 4. Draw Level Banner
         let level_banner_y = stats_y + stats_h;
         self.draw_level_banner(state, screen_w, level_banner_y, scale);
 
@@ -695,8 +716,8 @@ impl Hud {
     }
 
     fn draw_level_banner(&self, state: &GameState, screen_w: f32, y: f32, scale: f32) {
-        let text = format!("☣ {} — {}", state.level.title, state.level.description);
-        let mut font_size = 22.0 * scale;
+        let text = format!("☣ {}", state.level.title);
+        let mut font_size = 26.0 * scale;
         let mut dimensions = self.measure_text_str(&text, font_size);
 
         // Dynamically shrink font size if text is too wide for screen
@@ -715,7 +736,7 @@ impl Hud {
         self.draw_text_str(
             &text,
             draw_x.max(box_x + 8.0),
-            y + box_h * 0.68,
+            y + box_h * 0.70,
             font_size,
             Color::from_rgba(255, 255, 255, 255),
         );
@@ -1060,28 +1081,17 @@ impl Hud {
                         }
                     }
                     CellType::Obstacle => {
-                        draw_rectangle(
-                            cx + 1.0,
-                            cy + 1.0,
-                            cell_size - 2.0,
-                            cell_size - 2.0,
-                            Color::from_rgba(100, 116, 139, 255),
-                        );
-                        draw_rectangle_lines(
-                            cx + 2.0,
-                            cy + 2.0,
-                            cell_size - 4.0,
-                            cell_size - 4.0,
-                            2.0,
-                            Color::from_rgba(51, 65, 85, 255),
-                        );
-                        draw_line(
-                            cx + 4.0,
-                            cy + 4.0,
-                            cx + cell_size - 4.0,
-                            cy + cell_size - 4.0,
-                            2.0,
-                            Color::from_rgba(15, 23, 42, 255),
+                        draw_empty_tile(cx, cy, cell_size, r, c);
+                        let variant = (r * 37 + c * 19) % self.stone_textures.len();
+                        draw_texture_ex(
+                            &self.stone_textures[variant],
+                            cx,
+                            cy,
+                            WHITE,
+                            DrawTextureParams {
+                                dest_size: Some(vec2(cell_size, cell_size)),
+                                ..Default::default()
+                            },
                         );
                     }
                 }

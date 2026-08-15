@@ -3,7 +3,6 @@ use super::grid::{Edge, Grid};
 #[derive(Debug, Clone, Copy)]
 pub struct Level {
     pub title: &'static str,
-    pub description: &'static str,
     pub rows: usize,
     pub cols: usize,
     pub walls_per_turn: usize,
@@ -39,7 +38,6 @@ impl Level {
 pub const LEVELS: &[Level] = &[
     Level {
         title: "Level 1: Containment 101",
-        description: "Place walls on grid borders to trap and isolate biomass.",
         rows: 5,
         cols: 5,
         walls_per_turn: 2,
@@ -52,7 +50,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 2: Twin Spores",
-        description: "Multiple active outbreak points detected. Isolate both sectors.",
         rows: 6,
         cols: 6,
         walls_per_turn: 2,
@@ -65,7 +62,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 3: Pillar Defense",
-        description: "Facility structural pillars block biomass expansion and wall placement.",
         rows: 6,
         cols: 6,
         walls_per_turn: 2,
@@ -78,7 +74,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 4: Divided Sectors",
-        description: "Utilize existing facility security barriers to quickly enclose spores.",
         rows: 7,
         cols: 7,
         walls_per_turn: 2,
@@ -95,7 +90,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 5: Rapid Mutation",
-        description: "WARNING: High-speed mutation! Biomass expands 2 steps per turn.",
         rows: 7,
         cols: 7,
         walls_per_turn: 3,
@@ -108,7 +102,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 6: Central Rock Fortress",
-        description: "Four central containment pillars restrict open corridor pathways.",
         rows: 8,
         cols: 8,
         walls_per_turn: 2,
@@ -121,7 +114,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 7: Corridor Siege",
-        description: "Narrow corridor network. Seal off choke points before infection spreads.",
         rows: 8,
         cols: 8,
         walls_per_turn: 3,
@@ -143,7 +135,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 8: Outbreak Zero",
-        description: "Triple spore outbreak across large grid layout.",
         rows: 9,
         cols: 9,
         walls_per_turn: 3,
@@ -156,7 +147,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 9: Bio-Lab Hazard",
-        description: "Multi-spore rapid outbreak with facility structural obstacles.",
         rows: 9,
         cols: 9,
         walls_per_turn: 3,
@@ -169,7 +159,6 @@ pub const LEVELS: &[Level] = &[
     },
     Level {
         title: "Level 10: Bio-Reactor Meltdown",
-        description: "FINAL PROTOCOL: 4 active spores in a 10x10 reactor core with tight capacity!",
         rows: 10,
         cols: 10,
         walls_per_turn: 3,
