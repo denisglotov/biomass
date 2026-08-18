@@ -122,6 +122,7 @@ jobs:
             target/android-artifacts/release/apk/biomass.apk
             target/android-artifacts/release/apk/biomass.aab
             target/android-artifacts/release/apk/mapping.txt
+            target/android-artifacts/release/apk/native-debug-symbols.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -131,6 +132,7 @@ jobs:
             target/android-artifacts/release/apk/biomass.apk
             target/android-artifacts/release/apk/biomass.aab
             target/android-artifacts/release/apk/mapping.txt
+            target/android-artifacts/release/apk/native-debug-symbols.zip
           generate_release_notes: true
           draft: false
           prerelease: false
