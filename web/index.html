@@ -56,16 +56,7 @@
       const audioBuffers = {};
 
       (function preloadBytes() {
-        const files = [
-          "wall",
-          "tick",
-          "pop",
-          "win",
-          "fanfare",
-          "loss",
-          "click",
-          "error",
-        ];
+        const files = ['wall', 'tick', 'pop', 'win', 'fanfare', 'loss', 'click', 'error'];
         for (const file of files) {
           fetch(`assets/${file}.wav`)
             .then((r) => r.arrayBuffer())
@@ -99,7 +90,7 @@
         let ctx = getBiomassAudioCtx();
         if (!ctx) return;
 
-        if (ctx.state === "suspended") {
+        if (ctx.state === 'suspended') {
           ctx.resume();
         }
 
@@ -115,36 +106,31 @@
         }
       }
 
-      ["click", "mousedown", "pointerdown", "keydown", "touchstart"].forEach(
-        (evt) => {
-          window.addEventListener(
-            evt,
-            (e) => {
-              if (
-                e.type === "keydown" &&
-                (e.key === "Meta" ||
-                  e.key === "Control" ||
-                  e.key === "Alt" ||
-                  e.key === "Shift")
-              ) {
-                return;
-              }
-              unlockAudioContext();
-            },
-            { capture: true },
-          );
-        },
-      );
+      ['click', 'mousedown', 'pointerdown', 'keydown', 'touchstart'].forEach((evt) => {
+        window.addEventListener(
+          evt,
+          (e) => {
+            if (
+              e.type === 'keydown' &&
+              (e.key === 'Meta' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift')
+            ) {
+              return;
+            }
+            unlockAudioContext();
+          },
+          { capture: true }
+        );
+      });
 
       window.biomassPlaySound = function (type) {
         let ctx = getBiomassAudioCtx();
         if (!ctx) return;
 
-        if (ctx.state === "suspended") {
+        if (ctx.state === 'suspended') {
           ctx
             .resume()
             .then(() => playBuffer(ctx, type))
-            .catch((e) => console.warn("Audio blocked", e));
+            .catch((e) => console.warn('Audio blocked', e));
         } else {
           playBuffer(ctx, type);
         }
@@ -161,48 +147,48 @@
           source.connect(ctx.destination);
           source.start(0);
         } catch (e) {
-          console.error("Audio playback failed", e);
+          console.error('Audio playback failed', e);
         }
       }
     </script>
     <script>
       // Load mq_js_bundle.js with cache busting
-      const script = document.createElement("script");
-      script.src = "mq_js_bundle.js?t=" + Date.now();
+      const script = document.createElement('script');
+      script.src = 'mq_js_bundle.js?t=' + Date.now();
       script.onload = function () {
         miniquad_add_plugin({
           register_plugin: function (env_obj) {
             env_obj.env.play_sound_wall = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("wall");
+              if (window.biomassPlaySound) window.biomassPlaySound('wall');
             };
             env_obj.env.play_sound_tick = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("tick");
+              if (window.biomassPlaySound) window.biomassPlaySound('tick');
             };
             env_obj.env.play_sound_pop = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("pop");
+              if (window.biomassPlaySound) window.biomassPlaySound('pop');
             };
             env_obj.env.play_sound_win = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("win");
+              if (window.biomassPlaySound) window.biomassPlaySound('win');
             };
             env_obj.env.play_sound_fanfare = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("fanfare");
+              if (window.biomassPlaySound) window.biomassPlaySound('fanfare');
             };
             env_obj.env.play_sound_loss = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("loss");
+              if (window.biomassPlaySound) window.biomassPlaySound('loss');
             };
             env_obj.env.play_sound_click = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("click");
+              if (window.biomassPlaySound) window.biomassPlaySound('click');
             };
             env_obj.env.play_sound_error = function () {
-              if (window.biomassPlaySound) window.biomassPlaySound("error");
+              if (window.biomassPlaySound) window.biomassPlaySound('error');
             };
           },
           version: 1,
-          name: "biomass_audio",
+          name: 'biomass_audio',
         });
         miniquad_add_plugin({
           register_plugin: function (env_obj) {
-            var STORAGE_KEY = "biomass_level";
+            var STORAGE_KEY = 'biomass_level';
             env_obj.env.storage_save = function (value) {
               try {
                 localStorage.setItem(STORAGE_KEY, value.toString());
@@ -223,9 +209,9 @@
             };
           },
           version: 1,
-          name: "biomass_storage",
+          name: 'biomass_storage',
         });
-        load("biomass.wasm?t=" + Date.now());
+        load('biomass.wasm?t=' + Date.now());
       };
       document.head.appendChild(script);
     </script>
