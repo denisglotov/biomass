@@ -1,0 +1,41 @@
+{
+  "locale": "ja-JP",
+  "language_name": "日本語",
+  "header": {
+    "title": "☣ バイオマス",
+    "subtitle": "戦術的生体隔離プロトコル"
+  },
+  "stats": {
+    "turn": "⌛ ターン",
+    "walls": "🛡 防壁",
+    "biomass": "☣ バイオマス",
+    "max": "⚠ 上限"
+  },
+  "levels": [
+    "レベル 1: 隔離の基本",
+    "レベル 2: 双子の胞子",
+    "レベル 3: 支柱防衛",
+    "レベル 4: 分割セクター",
+    "レベル 5: 急速変異",
+    "レベル 6: 中央岩塞",
+    "レベル 7: 通路攻防戦",
+    "レベル 8: アウトブレイク・ゼロ",
+    "レベル 9: バイオラボの危機",
+    "レベル 10: バイオリアクター暴走"
+  ],
+  "modal": {
+    "containment_complete": "隔離完了",
+    "congratulations": "おめでとうございます！",
+    "all_sectors_contained": "★ 全セクター隔離完了 ★",
+    "containment_breached": "☣ 隔離プロトコル崩壊",
+    "sector_cleared_template": "{turns}ターンでセクターを制圧！",
+    "facility_secured_template": "施設確保！最終セクターを{turns}ターンで制圧。",
+    "all_threats_neutralized": "すべての生物学的脅威を無力化しました。完璧な隔離です！",
+    "defeat_reason": "バイオマス許容量を超過したか、配置可能な防壁がありません。",
+    "retry_level": "↺ 再挑戦",
+    "replay_level": "↺ もう一度プレイ",
+    "next_level": "▶ 次のレベル",
+    "skip_level": "⏭ スキップ",
+    "start_from_first": "⏮ 最初から"
+  }
+}

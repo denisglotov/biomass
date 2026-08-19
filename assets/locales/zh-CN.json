@@ -1,0 +1,41 @@
+{
+  "locale": "zh-CN",
+  "language_name": "简体中文",
+  "header": {
+    "title": "☣ 生物质",
+    "subtitle": "战术生物隔离封锁协议"
+  },
+  "stats": {
+    "turn": "⌛ 回合",
+    "walls": "🛡 隔离墙",
+    "biomass": "☣ 生物质",
+    "max": "⚠ 上限"
+  },
+  "levels": [
+    "关卡 1: 隔离基础",
+    "关卡 2: 双生孢子",
+    "关卡 3: 支柱防御",
+    "关卡 4: 分割区域",
+    "关卡 5: 快速变异",
+    "关卡 6: 中央岩石要塞",
+    "关卡 7: 走廊围攻",
+    "关卡 8: 零号爆发",
+    "关卡 9: 生物实验室险情",
+    "关卡 10: 生物反应堆熔毁"
+  ],
+  "modal": {
+    "containment_complete": "隔离完成",
+    "congratulations": "恭喜通关！",
+    "all_sectors_contained": "★ 所有区域已成功隔离 ★",
+    "containment_breached": "☣ 隔离失控",
+    "sector_cleared_template": "已在 {turns} 回合内清除本区域！",
+    "facility_secured_template": "设施已确保安全！最终区域在 {turns} 回合内清除。",
+    "all_threats_neutralized": "所有生物威胁已被完全消灭。出色的控制行动！",
+    "defeat_reason": "生物质超出最大容量或已无可用移动步数。",
+    "retry_level": "↺ 重试",
+    "replay_level": "↺ 重新开始",
+    "next_level": "▶ 下一关",
+    "skip_level": "⏭ 跳过关卡",
+    "start_from_first": "⏮ 返回第一关"
+  }
+}

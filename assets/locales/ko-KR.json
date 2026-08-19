@@ -1,0 +1,41 @@
+{
+  "locale": "ko-KR",
+  "language_name": "한국어",
+  "header": {
+    "title": "☣ 바이오매스",
+    "subtitle": "전술 생체 격리 프로토콜"
+  },
+  "stats": {
+    "turn": "⌛ 턴",
+    "walls": "🛡 방벽",
+    "biomass": "☣ 바이오매스",
+    "max": "⚠ 최대"
+  },
+  "levels": [
+    "레벨 1: 격리 기초",
+    "레벨 2: 쌍둥이 포자",
+    "레벨 3: 기둥 방어",
+    "레벨 4: 분할 구역",
+    "레벨 5: 급속 변이",
+    "레벨 6: 중앙 암석 요새",
+    "레벨 7: 통로 공방전",
+    "레벨 8: 발발 제로",
+    "레벨 9: 바이오 연구소 위기",
+    "레벨 10: 바이오 원자로 멜트다운"
+  ],
+  "modal": {
+    "containment_complete": "격리 완료",
+    "congratulations": "축하합니다!",
+    "all_sectors_contained": "★ 모든 구역 격리 완료 ★",
+    "containment_breached": "☣ 격리 실패",
+    "sector_cleared_template": "{turns}턴 만에 구역 정화 완료!",
+    "facility_secured_template": "시설 보안 확보! {turns}턴 만에 최종 구역 정화.",
+    "all_threats_neutralized": "모든 생체 위협이 무력화되었습니다. 훌륭한 격리 작전입니다!",
+    "defeat_reason": "바이오매스 한도를 초과했거나 더 이상 놓을 수 있는 방벽이 없습니다.",
+    "retry_level": "↺ 다시 시도",
+    "replay_level": "↺ 다시 플레이",
+    "next_level": "▶ 다음 레벨",
+    "skip_level": "⏭ 건너뛰기",
+    "start_from_first": "⏮ 처음부터"
+  }
+}
