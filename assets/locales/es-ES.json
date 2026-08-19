@@ -1,0 +1,41 @@
+{
+  "locale": "es-ES",
+  "language_name": "Español",
+  "header": {
+    "title": "☣ BIOMASA",
+    "subtitle": "PROTOCOLO DE CONTENCIÓN BIOLÓGICA TÁCTICA"
+  },
+  "stats": {
+    "turn": "⌛ TURNO",
+    "walls": "🛡 MUROS",
+    "biomass": "☣ BIOMASA",
+    "max": "⚠ MÁX"
+  },
+  "levels": [
+    "Nivel 1: Contención básica",
+    "Nivel 2: Esporas gemelas",
+    "Nivel 3: Defensa de pilares",
+    "Nivel 4: Sectores divididos",
+    "Nivel 5: Mutación rápida",
+    "Nivel 6: Fortaleza rocosa central",
+    "Nivel 7: Asedio de pasillos",
+    "Nivel 8: Brote cero",
+    "Nivel 9: Peligro en el biolaboratorio",
+    "Nivel 10: Fusión del biorreactor"
+  ],
+  "modal": {
+    "containment_complete": "CONTENCIÓN COMPLETADA",
+    "congratulations": "¡FELICITACIONES!",
+    "all_sectors_contained": "★ TODOS LOS SECTORES CONTENIDOS ★",
+    "containment_breached": "☣ CONTENCIÓN ROTA",
+    "sector_cleared_template": "¡Sector despejado en {turns} turnos!",
+    "facility_secured_template": "¡Instalación asegurada! Último sector despejado en {turns} turnos.",
+    "all_threats_neutralized": "Todas las bioamenazas neutralizadas. ¡Excelente contención!",
+    "defeat_reason": "Capacidad de biomasa excedida o no quedan movimientos.",
+    "retry_level": "↺ Reintentar",
+    "replay_level": "↺ Repetir nivel",
+    "next_level": "▶ Siguiente",
+    "skip_level": "⏭ Saltar nivel",
+    "start_from_first": "⏮ Al principio"
+  }
+}

@@ -189,12 +189,27 @@ The Android package name, version, and target API are configured in [`Cargo.toml
 
 ---
 
-## 🎨 Credits & Audio Assets
+## 🌐 Internationalization & Locales
+
+Biomass supports full localization with standard BCP-47 region tag resolution:
+- **English (US)**: `en-US` (Default)
+- **Russian**: `ru-RU`
+- **Spanish**: `es-ES`
+- **German**: `de-DE`
+- **French**: `fr-FR`
+
+### Locale Resolution & Platform Integration
+- **WebAssembly (WASM)**: Automatically detects browser/device locale via `navigator.language`.
+- **Android**: Automatically detects system locale via Android system properties (`persist.sys.locale` / `ro.product.locale`) with localized launcher names in `res/values-*/strings.xml`.
+- **Desktop (Native)**: Pass `--lang <tag>` (e.g. `cargo run -- --lang ru-RU` or `cargo run -- -l es-ES`), falling back to `LANG`/`LC_ALL` environment variables, and defaulting to `en-US`.
+- **Translation Resources**: Stored in industry-standard JSON files under [`assets/locales/`](assets/locales/) compatible with modern translation management systems (Crowdin, Lokalise, Weblate, etc.).
+
+---
+
+## 🎨 Credits & Assets
 
 - **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* & *Digital Audio* packs),
   licensed under [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with
   custom DSP synthesized audio.
-- **Fonts & Binary Size Optimization**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf), a trimmed subset
-  of Symbola (~25 KB vs original 2.19 MB) containing ASCII and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`,
-  `⭐`, `☆`, `↺`, `▶`, `⏭`). This optimization reduces release Android APK size to ~1.5 MB and minimizes WebAssembly
-  payload size.
+- **Fonts & Typography**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf) supporting Latin-1, Extended Latin (Spanish, German, French), Cyrillic (Russian), and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`, `⭐`, `☆`, `↺`, `▶`, `⏭`, `⏮`).
+

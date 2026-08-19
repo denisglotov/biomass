@@ -1,0 +1,41 @@
+{
+  "locale": "fr-FR",
+  "language_name": "Français",
+  "header": {
+    "title": "☣ BIOMASSE",
+    "subtitle": "PROTOCOLE TACTIQUE DE CONFINEMENT BIOLOGIQUE"
+  },
+  "stats": {
+    "turn": "⌛ TOUR",
+    "walls": "🛡 MURS",
+    "biomass": "☣ BIOMASSE",
+    "max": "⚠ MAX"
+  },
+  "levels": [
+    "Niveau 1 : Initiation au confinement",
+    "Niveau 2 : Spores jumelles",
+    "Niveau 3 : Défense des piliers",
+    "Niveau 4 : Secteurs divisés",
+    "Niveau 5 : Mutation rapide",
+    "Niveau 6 : Forteresse rocheuse centrale",
+    "Niveau 7 : Siège des couloirs",
+    "Niveau 8 : Épidémie zéro",
+    "Niveau 9 : Danger au biolaboratoire",
+    "Niveau 10 : Fusion du bioréacteur"
+  ],
+  "modal": {
+    "containment_complete": "CONFINEMENT RÉUSSI",
+    "congratulations": "FÉLICITATIONS !",
+    "all_sectors_contained": "★ TOUS LES SECTEURS CONFINÉS ★",
+    "containment_breached": "☣ BRÈCHE DE CONFINEMENT",
+    "sector_cleared_template": "Secteur nettoyé en {turns} tours !",
+    "facility_secured_template": "Complexe sécurisé ! Dernier secteur nettoyé en {turns} tours.",
+    "all_threats_neutralized": "Toutes les bio-menaces sont neutralisées. Confinement parfait !",
+    "defeat_reason": "Capacité de biomasse dépassée ou aucun mouvement possible.",
+    "retry_level": "↺ Réessayer",
+    "replay_level": "↺ Rejouer",
+    "next_level": "▶ Suivant",
+    "skip_level": "⏭ Passer",
+    "start_from_first": "⏮ Recommencer"
+  }
+}

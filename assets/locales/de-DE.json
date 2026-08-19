@@ -1,0 +1,41 @@
+{
+  "locale": "de-DE",
+  "language_name": "Deutsch",
+  "header": {
+    "title": "☣ BIOMASSE",
+    "subtitle": "TAKTIISCHES BIOLOGISCHES EINDÄMMUNGSPROTOKOLL"
+  },
+  "stats": {
+    "turn": "⌛ ZUG",
+    "walls": "🛡 WÄNDE",
+    "biomass": "☣ BIOMASSE",
+    "max": "⚠ MAX"
+  },
+  "levels": [
+    "Level 1: Eindämmung 101",
+    "Level 2: Zwillingssporen",
+    "Level 3: Säulenverteidigung",
+    "Level 4: Geteilte Sektoren",
+    "Level 5: Schnelle Mutation",
+    "Level 6: Zentrale Felsenfestung",
+    "Level 7: Korridor-Belagerung",
+    "Level 8: Ausbruch Null",
+    "Level 9: Biolabor-Gefahr",
+    "Level 10: Bioreaktor-Havarie"
+  ],
+  "modal": {
+    "containment_complete": "EINDÄMMUNG ERFOLGREICH",
+    "congratulations": "HERZLICHEN GLÜCKWUNSCH!",
+    "all_sectors_contained": "★ ALLE SEKTOREN EINGEDÄMMT ★",
+    "containment_breached": "☣ EINDÄMMUNG DURCHBROCHEN",
+    "sector_cleared_template": "Sektor in {turns} Zügen bereinigt!",
+    "facility_secured_template": "Einrichtung gesichert! Letzter Sektor in {turns} Zügen bereinigt.",
+    "all_threats_neutralized": "Alle Bio-Bedrohungen neutralisiert. Hervorragende Leistung!",
+    "defeat_reason": "Biomasse-Kapazität überschritten oder keine Züge übrig.",
+    "retry_level": "↺ Wiederholen",
+    "replay_level": "↺ Nochmal spielen",
+    "next_level": "▶ Weiter",
+    "skip_level": "⏭ Überspringen",
+    "start_from_first": "⏮ Zum Anfang"
+  }
+}
