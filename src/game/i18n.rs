@@ -246,30 +246,89 @@ pub fn parse_cli_locale(args: impl IntoIterator<Item = impl AsRef<str>>) -> Opti
                     return Some(v.to_string());
                 }
             }
-        } else if let Some(val) = s.strip_prefix("--lang=") {
-            let v = val.trim();
-            if !v.is_empty() {
-                return Some(v.to_string());
-            }
+        } else if let Some(val) = s
+            .strip_prefix("--lang=")
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        {
+            return Some(val.to_string());
         }
     }
     None
+}
+
+#[cfg(target_os = "macos")]
+fn detect_macos_locale() -> Option<String> {
+    extern "C" {
+        fn CFLocaleCopyCurrent() -> *const std::ffi::c_void;
+        fn CFLocaleGetIdentifier(loc: *const std::ffi::c_void) -> *const std::ffi::c_void;
+        fn CFStringGetCString(
+            str_ref: *const std::ffi::c_void,
+            buf: *mut std::os::raw::c_char,
+            size: isize,
+            enc: u32,
+        ) -> bool;
+        fn CFRelease(cf: *const std::ffi::c_void);
+    }
+    unsafe {
+        let loc = CFLocaleCopyCurrent();
+        if loc.is_null() {
+            return None;
+        }
+        let ident = CFLocaleGetIdentifier(loc);
+        let mut buf = [0u8; 64];
+        let ok = !ident.is_null()
+            && CFStringGetCString(ident, buf.as_mut_ptr() as _, buf.len() as isize, 0x08000100);
+        CFRelease(loc);
+        ok.then(|| {
+            std::ffi::CStr::from_bytes_until_nul(&buf)
+                .ok()?
+                .to_str()
+                .ok()
+                .map(str::to_string)
+        })?
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn detect_windows_locale() -> Option<String> {
+    extern "system" {
+        fn GetUserDefaultLocaleName(buf: *mut u16, len: i32) -> i32;
+    }
+    let mut buf = [0u16; 85];
+    let len = unsafe { GetUserDefaultLocaleName(buf.as_mut_ptr(), buf.len() as i32) };
+    (len > 1).then(|| String::from_utf16(&buf[..(len as usize - 1)]).ok())?
+}
+
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+fn detect_env_locale() -> Option<String> {
+    ["LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"]
+        .into_iter()
+        .find_map(|var| {
+            let val = std::env::var(var).ok()?;
+            let clean = val.trim().split(['.', ':']).next().unwrap_or("");
+            (!clean.is_empty() && clean != "C" && clean != "POSIX").then(|| clean.to_string())
+        })
 }
 
 #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 pub fn detect_locale_tag() -> String {
     parse_cli_locale(std::env::args().skip(1))
         .or_else(|| {
-            ["LANG", "LC_ALL", "LC_MESSAGES"]
-                .into_iter()
-                .find_map(|var| {
-                    std::env::var(var).ok().and_then(|val| {
-                        let trimmed = val.trim();
-                        (!trimmed.is_empty() && trimmed != "C" && trimmed != "POSIX")
-                            .then(|| trimmed.split('.').next().unwrap_or(trimmed).to_string())
-                    })
-                })
+            #[cfg(target_os = "macos")]
+            {
+                detect_macos_locale()
+            }
+            #[cfg(target_os = "windows")]
+            {
+                detect_windows_locale()
+            }
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            {
+                None
+            }
         })
+        .or_else(detect_env_locale)
         .unwrap_or_else(|| "en-US".to_string())
 }
 
@@ -384,5 +443,13 @@ mod tests {
             Some("pt+BR".to_string())
         );
         assert_eq!(parse_cli_locale(&["--other", "val"]), None);
+    }
+
+    #[test]
+    fn test_detect_locale_tag() {
+        let tag = detect_locale_tag();
+        assert!(!tag.is_empty(), "Detected locale tag should not be empty");
+        let resolved = resolve_locale(&tag);
+        assert!(!resolved.locale.is_empty());
     }
 }
