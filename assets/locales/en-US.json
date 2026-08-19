@@ -1,0 +1,41 @@
+{
+  "locale": "en-US",
+  "language_name": "English",
+  "header": {
+    "title": "☣ BIOMASS",
+    "subtitle": "TACTICAL BIOLOGICAL CONTAINMENT PROTOCOL"
+  },
+  "stats": {
+    "turn": "⌛ TURN",
+    "walls": "🛡 WALLS",
+    "biomass": "☣ BIOMASS",
+    "max": "⚠ MAX"
+  },
+  "levels": [
+    "Level 1: Containment 101",
+    "Level 2: Twin Spores",
+    "Level 3: Pillar Defense",
+    "Level 4: Divided Sectors",
+    "Level 5: Rapid Mutation",
+    "Level 6: Central Rock Fortress",
+    "Level 7: Corridor Siege",
+    "Level 8: Outbreak Zero",
+    "Level 9: Bio-Lab Hazard",
+    "Level 10: Bio-Reactor Meltdown"
+  ],
+  "modal": {
+    "containment_complete": "CONTAINMENT COMPLETE",
+    "congratulations": "CONGRATULATIONS!",
+    "all_sectors_contained": "★ ALL SECTORS CONTAINED ★",
+    "containment_breached": "☣ CONTAINMENT BREACHED",
+    "sector_cleared_template": "Sector cleared in {turns} turns!",
+    "facility_secured_template": "Facility secured! Final sector cleared in {turns} turns.",
+    "all_threats_neutralized": "All bio-threats neutralized. Outstanding containment!",
+    "defeat_reason": "Biomass capacity exceeded or no moves remain.",
+    "retry_level": "↺ Retry Level",
+    "replay_level": "↺ Replay Level",
+    "next_level": "▶ Next Level",
+    "skip_level": "⏭ Skip Level",
+    "start_from_first": "⏮ Start from First"
+  }
+}

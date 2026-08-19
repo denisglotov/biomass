@@ -1,5 +1,6 @@
 use super::bfs::{evaluate_sealed_enclosure_dieoff, expand_biomass_step_by_step, CloneEvent};
 use super::grid::{CellType, Edge, EdgeState, Grid};
+use super::i18n::{detect_locale_tag, resolve_locale, LocaleStrings};
 use super::level::{get_levels, Level};
 use super::storage::{load_last_level_reached, save_last_level_reached};
 
@@ -21,6 +22,7 @@ pub struct GameState {
     pub walls_left: usize,
     pub phase: GamePhase,
     pub placed_walls_this_turn: Vec<Edge>,
+    pub locales: &'static LocaleStrings,
 
     // Animation state
     pub anim_timer: f32,
@@ -41,6 +43,8 @@ impl GameState {
         let level = levels[level_idx];
         let grid = level.create_initial_grid();
         let walls_left = level.walls_per_turn;
+        let detected = detect_locale_tag();
+        let locales = resolve_locale(&detected);
 
         Self {
             levels,
@@ -51,6 +55,7 @@ impl GameState {
             walls_left,
             phase: GamePhase::PlayerTurn,
             placed_walls_this_turn: Vec::new(),
+            locales,
             anim_timer: 0.0,
             expansion_steps: Vec::new(),
             current_anim_step: 0,
@@ -59,6 +64,14 @@ impl GameState {
             newly_starved_this_step: Vec::new(),
             star_rating: 3,
         }
+    }
+
+    pub fn level_title(&self) -> &str {
+        self.locales
+            .levels
+            .get(self.current_level_idx)
+            .map(|s| s.as_str())
+            .unwrap_or(self.level.title)
     }
 
     pub fn load_level(&mut self, level_idx: usize) {
@@ -255,4 +268,23 @@ pub enum SoundTrigger {
     LossAlert,
     ButtonClick,
     InvalidMove,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_game_state_level_title() {
+        let mut state = GameState::new();
+        for idx in 0..state.levels.len() {
+            state.load_level(idx);
+            let title = state.level_title();
+            assert!(
+                !title.is_empty(),
+                "Level {} title should not be empty",
+                idx + 1
+            );
+        }
+    }
 }

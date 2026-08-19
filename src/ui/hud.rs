@@ -519,7 +519,7 @@ impl Hud {
         clear_background(Color::from_rgba(15, 23, 42, 255));
 
         // 2. Draw Header
-        let header_sound = self.draw_header(screen_w, header_h, scale);
+        let header_sound = self.draw_header(state, screen_w, header_h, scale);
         if header_sound.is_some() {
             sound_trigger = header_sound;
         }
@@ -560,7 +560,13 @@ impl Hud {
         sound_trigger
     }
 
-    fn draw_header(&self, screen_w: f32, header_h: f32, scale: f32) -> Option<SoundTrigger> {
+    fn draw_header(
+        &self,
+        state: &GameState,
+        screen_w: f32,
+        header_h: f32,
+        scale: f32,
+    ) -> Option<SoundTrigger> {
         let sound = None;
         // Dark Obsidian Header Bar
         draw_rectangle(
@@ -579,7 +585,7 @@ impl Hud {
             Color::from_rgba(0, 229, 255, 255),
         );
 
-        let title = "☣ BIOMASS";
+        let title = &state.locales.header.title;
         let font_size = 26.0 * scale;
         let title_dim = self.measure_text_str(title, font_size);
 
@@ -592,7 +598,7 @@ impl Hud {
             Color::from_rgba(0, 230, 118, 255),
         );
 
-        let subtitle = "TACTICAL BIOLOGICAL CONTAINMENT PROTOCOL";
+        let subtitle = &state.locales.header.subtitle;
         let subtitle_x = title_x + title_dim.width + 16.0 * scale;
         let subtitle_font_size = 12.0 * scale;
         let sub_dim = self.measure_text_str(subtitle, subtitle_font_size);
@@ -627,7 +633,7 @@ impl Hud {
 
         // Turn
         self.draw_stat_item(
-            "⌛ TURN",
+            &state.locales.stats.turn,
             &state.turn_number.to_string(),
             0.0,
             y,
@@ -645,7 +651,7 @@ impl Hud {
             Color::from_rgba(255, 171, 0, 255)
         };
         self.draw_stat_item(
-            "🛡 WALLS",
+            &state.locales.stats.walls,
             &walls_text,
             item_w,
             y,
@@ -660,7 +666,7 @@ impl Hud {
         let bio_text = bio_count.to_string();
         let bio_color = Color::from_rgba(0, 230, 118, 255);
         self.draw_stat_item(
-            "☣ BIOMASS",
+            &state.locales.stats.biomass,
             &bio_text,
             item_w * 2.0,
             y,
@@ -673,7 +679,7 @@ impl Hud {
         // Max Capacity
         let max_text = state.level.max_threshold.to_string();
         self.draw_stat_item(
-            "⚠ MAX",
+            &state.locales.stats.max,
             &max_text,
             item_w * 3.0,
             y,
@@ -716,7 +722,7 @@ impl Hud {
     }
 
     fn draw_level_banner(&self, state: &GameState, screen_w: f32, y: f32, scale: f32) {
-        let text = format!("☣ {}", state.level.title);
+        let text = format!("☣ {}", state.level_title());
         let mut font_size = 26.0 * scale;
         let mut dimensions = self.measure_text_str(&text, font_size);
 
@@ -1604,11 +1610,11 @@ impl Hud {
         draw_rectangle_lines(card_x, card_y, card_w, card_h, 3.5 * scale, border_color);
 
         let title = if is_congrats {
-            "CONGRATULATIONS!"
+            &state.locales.modal.congratulations
         } else if is_win {
-            "CONTAINMENT COMPLETE"
+            &state.locales.modal.containment_complete
         } else {
-            "☣ CONTAINMENT BREACHED"
+            &state.locales.modal.containment_breached
         };
         let mut title_size = if is_congrats {
             26.0 * scale
@@ -1635,7 +1641,7 @@ impl Hud {
         );
 
         if is_congrats {
-            let banner = "★ ALL SECTORS CONTAINED ★";
+            let banner = &state.locales.modal.all_sectors_contained;
             let banner_dim = self.measure_text_str(banner, 16.0 * scale);
             self.draw_text_str(
                 banner,
@@ -1655,10 +1661,10 @@ impl Hud {
                 Color::from_rgba(255, 215, 0, 255), // Bright Gold
             );
 
-            let msg = format!(
-                "Facility secured! Final sector cleared in {} turns.",
-                state.turn_number
-            );
+            let msg = state
+                .locales
+                .modal
+                .format_facility_secured(state.turn_number);
             let msg_dim = self.measure_text_str(&msg, 15.0 * scale);
             self.draw_text_str(
                 &msg,
@@ -1668,7 +1674,7 @@ impl Hud {
                 WHITE,
             );
 
-            let msg2 = "All bio-threats neutralized. Outstanding containment!";
+            let msg2 = &state.locales.modal.all_threats_neutralized;
             let msg2_dim = self.measure_text_str(msg2, 14.0 * scale);
             self.draw_text_str(
                 msg2,
@@ -1688,7 +1694,7 @@ impl Hud {
                 Color::from_rgba(255, 215, 0, 255), // Bright Gold
             );
 
-            let msg = format!("Sector cleared in {} turns!", state.turn_number);
+            let msg = state.locales.modal.format_sector_cleared(state.turn_number);
             let msg_dim = self.measure_text_str(&msg, 16.0 * scale);
             self.draw_text_str(
                 &msg,
@@ -1698,7 +1704,7 @@ impl Hud {
                 WHITE,
             );
         } else {
-            let msg = "Biomass capacity exceeded or no moves remain.";
+            let msg = &state.locales.modal.defeat_reason;
             let msg_dim = self.measure_text_str(msg, 15.0 * scale);
             self.draw_text_str(
                 msg,
@@ -1718,9 +1724,9 @@ impl Hud {
 
         let retry_rect = Rect::new(card_x + 20.0 * scale, btn_y, btn_w, btn_h);
         let retry_label = if is_congrats {
-            "↺ Replay Level"
+            &state.locales.modal.replay_level
         } else {
-            "↺ Retry Level"
+            &state.locales.modal.retry_level
         };
         self.draw_button(retry_label, retry_rect, mouse_pos, 15.0 * scale);
         if clicked && retry_rect.contains(mouse_pos.into()) {
@@ -1731,21 +1737,36 @@ impl Hud {
 
         let next_rect = Rect::new(card_x + card_w - btn_w - 20.0 * scale, btn_y, btn_w, btn_h);
         if is_congrats {
-            self.draw_button("⏮ Start from First", next_rect, mouse_pos, 15.0 * scale);
+            self.draw_button(
+                &state.locales.modal.start_from_first,
+                next_rect,
+                mouse_pos,
+                15.0 * scale,
+            );
             if clicked && next_rect.contains(mouse_pos.into()) {
                 state.load_level(0);
                 self.confetti.clear();
                 sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         } else if is_win {
-            self.draw_button("▶ Next Level", next_rect, mouse_pos, 15.0 * scale);
+            self.draw_button(
+                &state.locales.modal.next_level,
+                next_rect,
+                mouse_pos,
+                15.0 * scale,
+            );
             if clicked && next_rect.contains(mouse_pos.into()) {
                 state.load_level(state.current_level_idx + 1);
                 self.confetti.clear();
                 sound_trigger = Some(SoundTrigger::ButtonClick);
             }
         } else {
-            self.draw_button("⏭ Skip Level", next_rect, mouse_pos, 15.0 * scale);
+            self.draw_button(
+                &state.locales.modal.skip_level,
+                next_rect,
+                mouse_pos,
+                15.0 * scale,
+            );
             if clicked && next_rect.contains(mouse_pos.into()) {
                 if state.current_level_idx + 1 < state.levels.len() {
                     state.load_level(state.current_level_idx + 1);

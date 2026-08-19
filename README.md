@@ -54,8 +54,15 @@ This repository uses [`Justfile`](Justfile) for all build, run, and testing work
 # List all available recipes
 just
 
-# Run the native desktop application
+# Run the native desktop application (uses system language by default)
 just run
+
+# Run with an explicit language override
+just run --lang ru-RU   # Russian
+just run -l es-ES       # Spanish
+just run --lang=de-DE   # German
+just run -l fr-FR       # French
+
 
 # Build release WebAssembly target
 just build-wasm
@@ -189,12 +196,28 @@ The Android package name, version, and target API are configured in [`Cargo.toml
 
 ---
 
-## 🎨 Credits & Audio Assets
+## 🌐 Internationalization & Locales
+
+Biomass supports full localization with standard BCP-47 region tag resolution:
+- **English (US)**: `en-US` (Default)
+- **Russian**: `ru-RU`
+- **Spanish**: `es-ES`
+- **German**: `de-DE`
+- **French**: `fr-FR`
+
+### Locale Resolution & Platform Integration
+- **WebAssembly (WASM)**: Automatically detects browser/device locale via `navigator.language`.
+- **Android**: Automatically detects system and Android 13+ per-app locale via JNI `Locale.getDefault().toLanguageTag()` backed by `res/xml/locales_config.xml`.
+- **Desktop (Native)**: Automatically detects OS locale (macOS CoreFoundation, Windows API, POSIX environment variables) or accepts CLI flag overrides (e.g. `just run --lang ru-RU` or `just run -l es-ES`).
+- **Translation Resources**: Stored in industry-standard JSON files under [`assets/locales/`](assets/locales/) compatible with modern translation management systems (Crowdin, Lokalise, Weblate, etc.).
+
+
+---
+
+## 🎨 Credits & Assets
 
 - **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* & *Digital Audio* packs),
   licensed under [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with
   custom DSP synthesized audio.
-- **Fonts & Binary Size Optimization**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf), a trimmed subset
-  of Symbola (~25 KB vs original 2.19 MB) containing ASCII and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`,
-  `⭐`, `☆`, `↺`, `▶`, `⏭`). This optimization reduces release Android APK size to ~1.5 MB and minimizes WebAssembly
-  payload size.
+- **Fonts & Typography**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf) supporting Latin-1, Extended Latin (Spanish, German, French), Cyrillic (Russian), and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`, `⭐`, `☆`, `↺`, `▶`, `⏭`, `⏮`).
+
