@@ -54,8 +54,15 @@ This repository uses [`Justfile`](Justfile) for all build, run, and testing work
 # List all available recipes
 just
 
-# Run the native desktop application
+# Run the native desktop application (uses system language by default)
 just run
+
+# Run with an explicit language override
+just run --lang ru-RU   # Russian
+just run -l es-ES       # Spanish
+just run --lang=de-DE   # German
+just run -l fr-FR       # French
+
 
 # Build release WebAssembly target
 just build-wasm
@@ -200,9 +207,10 @@ Biomass supports full localization with standard BCP-47 region tag resolution:
 
 ### Locale Resolution & Platform Integration
 - **WebAssembly (WASM)**: Automatically detects browser/device locale via `navigator.language`.
-- **Android**: Automatically detects system locale via Android system properties (`persist.sys.locale` / `ro.product.locale`) with localized launcher names in `res/values-*/strings.xml`.
-- **Desktop (Native)**: Pass `--lang <tag>` (e.g. `cargo run -- --lang ru-RU` or `cargo run -- -l es-ES`), falling back to `LANG`/`LC_ALL` environment variables, and defaulting to `en-US`.
+- **Android**: Automatically detects system and Android 13+ per-app locale via JNI `Locale.getDefault().toLanguageTag()` backed by `res/xml/locales_config.xml`.
+- **Desktop (Native)**: Automatically detects OS locale (macOS CoreFoundation, Windows API, POSIX environment variables) or accepts CLI flag overrides (e.g. `just run --lang ru-RU` or `just run -l es-ES`).
 - **Translation Resources**: Stored in industry-standard JSON files under [`assets/locales/`](assets/locales/) compatible with modern translation management systems (Crowdin, Lokalise, Weblate, etc.).
+
 
 ---
 

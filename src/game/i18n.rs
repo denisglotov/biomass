@@ -312,22 +312,25 @@ fn detect_env_locale() -> Option<String> {
 }
 
 #[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
+fn detect_os_locale() -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        detect_macos_locale()
+    }
+    #[cfg(target_os = "windows")]
+    {
+        detect_windows_locale()
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        None
+    }
+}
+
+#[cfg(all(not(target_arch = "wasm32"), not(target_os = "android")))]
 pub fn detect_locale_tag() -> String {
     parse_cli_locale(std::env::args().skip(1))
-        .or_else(|| {
-            #[cfg(target_os = "macos")]
-            {
-                detect_macos_locale()
-            }
-            #[cfg(target_os = "windows")]
-            {
-                detect_windows_locale()
-            }
-            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-            {
-                None
-            }
-        })
+        .or_else(detect_os_locale)
         .or_else(detect_env_locale)
         .unwrap_or_else(|| "en-US".to_string())
 }
