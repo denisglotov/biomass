@@ -1,6 +1,6 @@
 [package]
 name = "biomass"
-version = "1.1.2"
+version = "1.2.0"
 edition = "2021"
 authors = ["Dymka"]
 description = "Biomass - Sci-Fi Turn-Based Containment Strategy Game"
@@ -16,10 +16,9 @@ macroquad = { version = "0.4", features = ["audio"] }
 [package.metadata.android]
 package_name = "org.dymka.biomass"
 label = "Biomass"
-version_code = 3
+version_code = 4
+version_name = "1.2.0"
 
-
-version_name = "1.1.2"
 android_version = 35
 target_sdk_version = 35
 min_sdk_version = 23
@@ -33,7 +32,6 @@ build_targets = ["aarch64-linux-android"]
 
 [package.metadata.android.activity_attributes]
 "android:exported" = "true"
-
 
 [profile.release]
 opt-level = "z"
