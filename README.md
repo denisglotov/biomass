@@ -204,13 +204,15 @@ Biomass supports full localization with standard BCP-47 region tag resolution:
 - **Spanish**: `es-ES`
 - **German**: `de-DE`
 - **French**: `fr-FR`
+- **Japanese**: `ja-JP`
+- **Chinese (Simplified)**: `zh-CN`
+- **Korean**: `ko-KR`
 
 ### Locale Resolution & Platform Integration
 - **WebAssembly (WASM)**: Automatically detects browser/device locale via `navigator.language`.
 - **Android**: Automatically detects system and Android 13+ per-app locale via JNI `Locale.getDefault().toLanguageTag()` backed by `res/xml/locales_config.xml`.
-- **Desktop (Native)**: Automatically detects OS locale (macOS CoreFoundation, Windows API, POSIX environment variables) or accepts CLI flag overrides (e.g. `just run --lang ru-RU` or `just run -l es-ES`).
+- **Desktop (Native)**: Automatically detects OS locale (macOS CoreFoundation, Windows API, POSIX environment variables) or accepts CLI flag overrides (e.g. `just run --lang ja-JP`, `just run -l zh-CN`, or `just run -l ko-KR`).
 - **Translation Resources**: Stored in industry-standard JSON files under [`assets/locales/`](assets/locales/) compatible with modern translation management systems (Crowdin, Lokalise, Weblate, etc.).
-
 
 ---
 
@@ -219,5 +221,6 @@ Biomass supports full localization with standard BCP-47 region tag resolution:
 - **Audio Assets**: Sound effect bases courtesy of [Kenney.nl](https://kenney.nl) (*UI Audio* & *Digital Audio* packs),
   licensed under [Creative Commons CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/), layered with
   custom DSP synthesized audio.
-- **Fonts & Typography**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf) supporting Latin-1, Extended Latin (Spanish, German, French), Cyrillic (Russian), and the game's specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`, `⭐`, `☆`, `↺`, `▶`, `⏭`, `⏮`).
-
+- **Fonts & Typography**: Uses [`Symbola-Subset.ttf`](assets/fonts/Symbola-Subset.ttf) supporting Latin-1, Extended
+  Latin (Spanish, German, French), Cyrillic (Russian), CJK (Japanese, Simplified Chinese, Korean), and the game's
+  specific UI glyphs (`☣`, `⌛`, `🛡`, `⚠`, `⭐`, `☆`, `↺`, `▶`, `⏭`, `⏮`).

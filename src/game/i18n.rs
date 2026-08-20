@@ -63,6 +63,9 @@ fn load_all_locales() -> Vec<LocaleStrings> {
         include_str!("../../assets/locales/es-ES.json"),
         include_str!("../../assets/locales/de-DE.json"),
         include_str!("../../assets/locales/fr-FR.json"),
+        include_str!("../../assets/locales/ja-JP.json"),
+        include_str!("../../assets/locales/zh-CN.json"),
+        include_str!("../../assets/locales/ko-KR.json"),
     ];
 
     LOCALES_JSON
@@ -82,13 +85,20 @@ pub fn normalize_locale_tag(tag: &str) -> String {
 }
 
 /// Resolves a requested locale tag against available translations.
-/// 1. Exact normalized match (e.g. "ru-ru" matches "ru-RU")
-/// 2. Language prefix match (e.g. "ru" or "ru-kz" matches "ru-RU", "es-mx" matches "es-ES")
-/// 3. Fallback to default English ("en-US")
+/// 1. Exact normalized match (e.g. "ru-ru" matches "ru-RU", "ja-jp" matches "ja-JP")
+/// 2. Shorthand alias match (e.g. "jp" -> "ja", "cn" -> "zh", "kr" -> "ko")
+/// 3. Language prefix match (e.g. "ru" or "ru-kz" matches "ru-RU", "ja" matches "ja-JP", "zh-hans" matches "zh-CN")
+/// 4. Fallback to default English ("en-US")
 pub fn resolve_locale(tag: &str) -> &'static LocaleStrings {
     let locales = get_locales_list();
     let norm = normalize_locale_tag(tag);
-    let base_lang = norm.split('-').next().unwrap_or("");
+    let raw_prefix = norm.split('-').next().unwrap_or("");
+    let base_lang = match raw_prefix {
+        "jp" => "ja",
+        "cn" => "zh",
+        "kr" => "ko",
+        other => other,
+    };
 
     locales
         .iter()
@@ -119,6 +129,9 @@ pub fn detect_locale_tag() -> String {
         2 => "es-ES".to_string(),
         3 => "de-DE".to_string(),
         4 => "fr-FR".to_string(),
+        5 => "ja-JP".to_string(),
+        6 => "zh-CN".to_string(),
+        7 => "ko-KR".to_string(),
         _ => "en-US".to_string(),
     }
 }
@@ -342,7 +355,7 @@ mod tests {
     #[test]
     fn test_all_locales_load_and_have_10_levels() {
         let locales = get_locales_list();
-        assert_eq!(locales.len(), 5);
+        assert_eq!(locales.len(), 8);
 
         for loc in locales {
             assert!(!loc.locale.is_empty());
@@ -417,12 +430,29 @@ mod tests {
         assert_eq!(resolve_locale("fr_CA").locale, "fr-FR");
         assert_eq!(resolve_locale("fr").locale, "fr-FR");
 
+        assert_eq!(resolve_locale("ja-JP").locale, "ja-JP");
+        assert_eq!(resolve_locale("ja_JP").locale, "ja-JP");
+        assert_eq!(resolve_locale("ja").locale, "ja-JP");
+        assert_eq!(resolve_locale("jp").locale, "ja-JP");
+        assert_eq!(resolve_locale("jp-JP").locale, "ja-JP");
+
+        assert_eq!(resolve_locale("zh-CN").locale, "zh-CN");
+        assert_eq!(resolve_locale("zh_CN").locale, "zh-CN");
+        assert_eq!(resolve_locale("zh").locale, "zh-CN");
+        assert_eq!(resolve_locale("cn").locale, "zh-CN");
+        assert_eq!(resolve_locale("zh-hans").locale, "zh-CN");
+
+        assert_eq!(resolve_locale("ko-KR").locale, "ko-KR");
+        assert_eq!(resolve_locale("ko_KR").locale, "ko-KR");
+        assert_eq!(resolve_locale("ko").locale, "ko-KR");
+        assert_eq!(resolve_locale("kr").locale, "ko-KR");
+
         assert_eq!(resolve_locale("en-US").locale, "en-US");
         assert_eq!(resolve_locale("en_GB").locale, "en-US");
         assert_eq!(resolve_locale("en").locale, "en-US");
 
         // Unknown locale falls back to en-US
-        assert_eq!(resolve_locale("ja-JP").locale, "en-US");
+        assert_eq!(resolve_locale("it-IT").locale, "en-US");
         assert_eq!(resolve_locale("unknown").locale, "en-US");
     }
 
