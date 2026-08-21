@@ -112,7 +112,7 @@ Install via [Android command-line tools](https://developer.android.com/studio#co
 
 ```bash
 brew install --cask android-commandlinetools
-sdkmanager "platforms;android-35" "ndk;26.1.10909125" "build-tools;35.0.0"
+sdkmanager "platforms;android-36" "ndk;26.1.10909125" "build-tools;36.0.0"
 ```
 
 > The minimum tested NDK version is **r26**. NDK r26+ ships LLVM-only toolchains (no legacy GNU binutils). `cargo-quad-apk` from git handles this correctly.
